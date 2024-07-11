@@ -6,12 +6,66 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Header {
-  id      Int @id @default(autoincrement())
-  name    String
-  value   String?
+  id           Int            @id @default(autoincrement())
+  name         String
+  value        String?
+  ServerHeader ServerHeader[]
+}
+
+model Server {
+  id           Int            @id @default(autoincrement())
+  name         String
+  hostname     String
+  http_port    Int
+  ssl_port     Int
+  use_ssl      Boolean
+  ServerHeader ServerHeader[]
+  ProxyServer  ProxyServer[]
+}
+
+model ServerHeader {
+  header   Header @relation(fields: [headerId], references: [id])
+  headerId Int
+  server   Server @relation(fields: [serverId], references: [id])
+  serverId Int
+
+  @@id([headerId, serverId])
+}
+
+model ProxyServer {
+  id                Int               @id @default(autoincrement())
+  server            Server            @relation(fields: [serverId], references: [id])
+  forward_scheme    Scheme            @default(HTTP)
+  forward_server    String
+  forward_port      Int
+  proxy_http_ver    HTTP_VERSION      @default(v11)
+  ssl_server_name   Boolean           @default(true)
+  ssl_session_reuse Boolean           @default(false)
+  proxy_ssl_protos  SSL_Protocol[]    @default([TLSv12, TLSv13])
+  connect_timeout   Int?
+  send_timeout      Int?
+  read_timeout      Int?
+
+  serverId Int
+}
+
+enum HTTP_VERSION {
+  v10
+  v11
+  v20
+}
+
+enum SSL_Protocol {
+  TLSv12
+  TLSv13
+}
+
+enum Scheme {
+  HTTP
+  HTTPS
 }
