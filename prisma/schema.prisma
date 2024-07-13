@@ -15,6 +15,7 @@ model Header {
   name         String
   value        String?
   ServerHeader ServerHeader[]
+  @@unique([name, value])
 }
 
 model Server {
