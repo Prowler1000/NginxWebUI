@@ -1,5 +1,5 @@
 import type { RequestHandler } from "./$types";
-import { parseSearchParams } from "$lib/server/parseParams";
+import { ParseBoolean, parseSearchParams } from "$lib/server/parseParams";
 import prisma from "$lib/server/db";
 
 /*  Parameters
@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url }) => {
             ids.push(Number(id));
         }
     }
-    const match_case = params["match-case"] != undefined ? Boolean(params["match-case"]) : true;
+    const match_case = ParseBoolean(params["match-case"] ?? true);
     const max = Number(params["max"] || "-1");
     
     const results = await prisma.header.findMany({
