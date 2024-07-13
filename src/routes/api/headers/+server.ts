@@ -1,8 +1,6 @@
 import type { RequestHandler } from "./$types";
 import { parseSearchParams } from "$lib/server/parseParams";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "$lib/server/db";
 
 /*  Parameters
     id?:                Int | Int[]

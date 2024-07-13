@@ -1,8 +1,7 @@
 import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { env } from 'process';
 
-const is_dev = env.DEV_ENV;
+const is_prod = process.env.NODE_ENV === 'production';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,7 +14,7 @@ const config = {
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
 		adapter: adapter(),
-		csrf: !is_dev, // Disable CSRF in dev mode
+		csrf: is_prod, // Disable CSRF outside of production
 	}
 };
 
