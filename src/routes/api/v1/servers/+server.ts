@@ -1,5 +1,5 @@
 import type { RequestHandler } from "./$types";
-import { parseSearchParams, ParseBoolean, ParseInt } from "$lib/server/parseParams";
+import { ParseSearchParams, ParseBoolean, ParseInt } from "$lib/server/parser";
 import prisma from "$lib/server/db";
 import assert from "assert";
 
@@ -44,7 +44,7 @@ const prismaQueryGen = <T>(parameter: T, exact: boolean, match_case: boolean): {
     include-headers?:       Boolean         (Include server headers in the result)
 */
 export const GET: RequestHandler = async ({ url }) => {
-    const params = parseSearchParams(url.search);
+    const params = ParseSearchParams(url.search);
 
     const ids = parseParamNumArray(params["id"]);
     const name = prismaQueryGen<string | undefined>(

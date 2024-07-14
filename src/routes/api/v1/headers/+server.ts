@@ -1,5 +1,5 @@
 import type { RequestHandler } from "./$types";
-import { ParseBoolean, parseSearchParams } from "$lib/server/parseParams";
+import { ParseBoolean, ParseSearchParams } from "$lib/server/parser";
 import prisma from "$lib/server/db";
 
 /*  Parameters
@@ -13,7 +13,7 @@ import prisma from "$lib/server/db";
 */
 
 export const GET: RequestHandler = async ({ url }) => {
-    const params = parseSearchParams(url.search);
+    const params = ParseSearchParams(url.search);
     let ids = undefined
     if (params["id"]) {
         ids = []
