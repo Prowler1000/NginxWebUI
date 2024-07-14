@@ -20,6 +20,7 @@ model Header {
 
 model Server {
   id           Int            @id @default(autoincrement())
+  enable       Boolean        @default(true)
   name         String
   hostname     String
   http_port    Int
@@ -27,6 +28,9 @@ model Server {
   use_ssl      Boolean
   ServerHeader ServerHeader[]
   ProxyServer  ProxyServer[]
+
+  @@unique(name: "http_endpoint", [hostname, http_port])
+  @@unique(name: "ssl_endpoint", [hostname, ssl_port])
 }
 
 model ServerHeader {
