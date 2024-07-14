@@ -2,6 +2,10 @@ import type { RequestHandler } from "./$types";
 import { parseSearchParams, ParseBoolean } from "$lib/server/parseParams";
 import prisma from "$lib/server/db";
 
+const jsonResponseHeader: Headers = new Headers({
+    "Content-Type": "application/json",
+});
+
 const parseParamNumArray = (param: string | undefined): number[] | undefined => {
     const array = param ? [] as number[] : undefined
     if (array && param) {
@@ -36,6 +40,7 @@ const prismaQueryGen = <T>(parameter: T, exact: boolean, match_case: boolean): {
     http-port?:             Int | Int[]
     ssl-port?:              Int | Int[]
     use-ssl?:               Boolean         (Match for servers that use SSL)
+    include-headers?:       Boolean         (Include server headers in the result)
 */
 export const GET: RequestHandler = async ({ url }) => {
     const params = parseSearchParams(url.search);
@@ -54,6 +59,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const http_ports = parseParamNumArray(params["http-port"]);
     const ssl_ports = parseParamNumArray(params["ssl-port"]);
     const use_ssl = params["use-ssl"] === undefined ? undefined : ParseBoolean(params["use-ssl"]);
+    const include_headers = ParseBoolean(params["include-headers"] ?? true);
 
     const results = await prisma.server.findMany({
         where: {
@@ -69,7 +75,16 @@ export const GET: RequestHandler = async ({ url }) => {
                 in: ssl_ports
             },
             use_ssl: use_ssl
-        }
+        },
+        include: include_headers ? {
+            ServerHeader: {
+                select: {
+                    header: true
+                }
+            }
+        } : undefined
     })
-    return new Response(JSON.stringify(results));
+    return new Response(JSON.stringify(results), {
+        headers: jsonResponseHeader
+    });
 }
