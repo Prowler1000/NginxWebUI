@@ -1,6 +1,7 @@
 import type { RequestHandler } from "./$types";
-import { parseSearchParams, ParseBoolean } from "$lib/server/parseParams";
+import { parseSearchParams, ParseBoolean, ParseInt } from "$lib/server/parseParams";
 import prisma from "$lib/server/db";
+import assert from "assert";
 
 const jsonResponseHeader: Headers = new Headers({
     "Content-Type": "application/json",
@@ -87,4 +88,60 @@ export const GET: RequestHandler = async ({ url }) => {
     return new Response(JSON.stringify(results), {
         headers: jsonResponseHeader
     });
+}
+
+interface ServerObject {
+    enable:     boolean,
+    name:       string,
+    hostname:   string,
+    http_port:  number,
+    ssl_port:   number,
+    use_ssl:    boolean
+}
+
+function createServerObj(name: string, params: Record<string, string>): ServerObject {
+    assert("hostname" in params);
+    assert(params["hostname"].length > 0);
+    return {
+        enable:     ParseBoolean(params["enable"] ?? true),
+        name:       name,
+        hostname:   params["hostname"],
+        http_port:  ParseInt(params["http-port"] ?? 80),
+        ssl_port:   ParseInt(params["ssl-port"] ?? 443),
+        use_ssl:    ParseBoolean(params["use-ssl"] ?? true),
+    }
+}
+
+export const POST: RequestHandler = async ({ request }) => {
+    if (request.headers.get("Content-Type") !== "application/json") {
+        return new Response(`Invalid request type. Expected application/json, got ${request.headers.get("Content-Type")}`, {
+            status: 400
+        });
+    }
+    let data: Record<string, Record<string, string>>;
+    try {
+        data = await request.json();
+    }
+    catch {
+        return new Response("Error parsing request json.", {
+            status: 400
+        })
+    }
+    if (Object.values(data).some(x => !("hostname" in x && x["hostname"].length > 0))) {
+        return new Response(`One or more server objects are missing a hostname.`, { status: 400 });
+    }
+    const servers: Array<ServerObject> = [];
+    for (const key in data) {
+        servers.push(createServerObj(key, data[key]));
+    }
+    try {     
+        const result = await prisma.server.createMany({
+            data: servers,
+            skipDuplicates: true,
+        });
+        return new Response(`Created ${result.count} servers.`, { status: 200 });
+    }
+    catch (e) {
+        return new Response(`An error occured while creating servers. ${e}`, { status: 500 })
+    }
 }

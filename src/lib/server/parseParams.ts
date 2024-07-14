@@ -17,3 +17,9 @@ export function ParseBoolean(bool_like: string | boolean | undefined): boolean {
     ? bool_like 
     : bool_like !== undefined && (bool_like.toLowerCase() === "true" || bool_like.toLowerCase() === "1");
 }
+
+export function ParseInt(int_like: string | number): number {
+    return typeof int_like === "number"
+    ? int_like
+    : Number(int_like)
+}
