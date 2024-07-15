@@ -14,8 +14,8 @@ export function ParseSearchParams(searchParams: string): Record<string, string |
     return dict;
 }
 
-export function ParseBoolean(bool_like: string | boolean): boolean;
-export function ParseBoolean(bool_like: string | undefined): boolean | undefined 
+export function ParseBoolean(bool_like: string | boolean): boolean
+export function ParseBoolean(bool_like: string | undefined): boolean | undefined
 export function ParseBoolean(bool_like: string | boolean | undefined): boolean | undefined {
     return typeof bool_like === "boolean"
     ? bool_like
@@ -31,6 +31,7 @@ export function ParseInt(int_like: string | number): number {
     : Number(int_like)
 }
 
+export function ParseNumArray(array_like: string): number[]
 export function ParseNumArray(array_like: string | undefined): number[] | undefined {
     const array = array_like ? [] as number[] : undefined;
     if (array && array_like) {
@@ -39,6 +40,10 @@ export function ParseNumArray(array_like: string | undefined): number[] | undefi
         }
     }
     return array
+}
+
+export function ParseNumArrayQuery(array_like: string | undefined): {in: number[]} | undefined {
+    return array_like === undefined ? undefined : { in: ParseNumArray(array_like) };
 }
 
 export function ParseHTTPVersionArray(array_like: string | undefined): HTTP_VERSION[] | undefined {
