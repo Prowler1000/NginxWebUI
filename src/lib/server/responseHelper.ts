@@ -16,6 +16,11 @@ export enum Status {
 export class ResponseHelper {
     private contentType: ContentType = ContentType.TEXT
     private status: Status | number = Status.OK
+    private bodyContent: string | undefined;
+
+    public constructor(message?: string) {
+        this.bodyContent = message;
+    }
 
     public ContentType(type: ContentType): ResponseHelper {
         this.contentType = type;
@@ -23,7 +28,12 @@ export class ResponseHelper {
     }
 
     public Status(status: Status | number): ResponseHelper {
-        this.status = status
+        this.status = status;
+        return this;
+    }
+
+    public Body(content: string): ResponseHelper {
+        this.bodyContent = content;
         return this;
     }
 
@@ -42,5 +52,9 @@ export class ResponseHelper {
         const headers = new Headers();
         headers.append("Content-Type", this.contentType);
         return headers;
+    }
+
+    public get Response(): Response {
+        return new Response(this.bodyContent, this.toInit());
     }
 }

@@ -27,7 +27,7 @@ function createServerObj(name: string, params: Record<string, string>): ServerOb
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-    if (request.headers.get("Content-Type")) {
+    if (request.headers.get("Content-Type") !== "application/json") {
         return new Response(`Invalid request type. Expected application/json, got ${request.headers.get("Content-Type")}`,
             new ResponseHelper()
             .Status(Status.BAD_REQUEST)
