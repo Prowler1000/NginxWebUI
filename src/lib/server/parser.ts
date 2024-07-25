@@ -1,4 +1,3 @@
-import { HTTP_VERSION, SSL_Protocol } from "@prisma/client";
 import assert from "assert";
 
 export function ParseSearchParams(searchParams: string): Record<string, string | undefined> {
@@ -48,30 +47,6 @@ export function ParseNumArray(array_like: string | undefined): number[] | undefi
 
 export function ParseNumArrayQuery(array_like: string | undefined): {in: number[]} | undefined {
     return array_like === undefined ? undefined : { in: ParseNumArray(array_like) };
-}
-
-export function ParseHTTPVersionArray(array_like: string | undefined): HTTP_VERSION[] | undefined {
-    const array = array_like ? [] as HTTP_VERSION[] : undefined;
-    if (array && array_like) {
-        for (const value of array_like.replace(" ", "").split(",")) {
-            if (value in HTTP_VERSION) {
-                array.push(HTTP_VERSION[value as keyof typeof HTTP_VERSION]);
-            }
-        }
-    }
-    return array;
-}
-
-export function ParseSSLProtocolArray(array_like: string | undefined): SSL_Protocol[] | undefined {
-    const array = array_like ? [] as SSL_Protocol[] : undefined;
-    if (array && array_like) {
-        for (const value of array_like.replace(" ", "").split(",")) {
-            if (value in SSL_Protocol) {
-                array.push(SSL_Protocol[value as keyof typeof SSL_Protocol]);
-            }
-        }
-    }
-    return array;
 }
 
 export function ValidEnum<T>(def: Record<string, T>, enum_like: string | undefined): boolean {
