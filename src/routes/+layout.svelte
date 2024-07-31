@@ -28,4 +28,8 @@
     }
     .page-ctr {
     }
+
+    :root {
+        --select-color: #276cc7;
+    }
 </style>

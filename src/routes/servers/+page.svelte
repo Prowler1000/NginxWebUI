@@ -1,24 +1,26 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import ServerItem from "../../components/ServerItem.svelte";
 
-    $: serversList = []
-    onMount(async () => {
-        serversList = await (await fetch("api/v1/servers/Get-Servers")).json()
-    })
+    const {
+        data
+    } = $props();
+
 </script>
 
 <div class="server-ctr">
-    {#each serversList as server}
-        <div>
-            {server["id"]}
-            {server["name"]}
-            {server["hostname"]}
-            {server["http_port"]}
-            {server["ssl_port"]}
-        </div>
+    {#each data.servers as server}
+        <ServerItem
+            id={server.id}
+            name={server.name}
+            hostname={server.hostname}
+            http_port={server.http_port}
+            ssl_port={server.ssl_port}
+            enabled_headers={server.headers}
+            all_headers={data.headers}
+        />
     {/each}
 </div>
 
 <style>
-
+    
 </style>
