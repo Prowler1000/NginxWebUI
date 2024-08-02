@@ -1,34 +1,31 @@
 <script lang="ts">
 	import { GetInteractType, InteractType } from "$lib/accessibility";
 	import type { Header } from "@prisma/client";
+	import InteractHandler from "./InteractHandler.svelte";
 
     type Props = {
         headers: Header[],
-        toggleCallback: (id: number) => void,
+        onQuickToggle: (id: number) => void,
+        selectedHeaders: number[]
     }
     const {
         headers,
-        toggleCallback
+        selectedHeaders = $bindable([] as number[]),
+        onQuickToggle
     }: Props = $props();
 
-    let selectedHeaders = $state([] as number[])
+    function clearSelectedHeaders() {
+        selectedHeaders.splice(0, selectedHeaders.length);
+    }
 
-    const onRowClick = (e: MouseEvent & {
-    currentTarget: EventTarget & HTMLTableRowElement;
-}, id: number) => {
-    onRowInteract(GetInteractType(e), id);
-}
-
-    const onRowKeyboard = (e: KeyboardEvent & {
-    currentTarget: EventTarget & HTMLTableRowElement;
-}, id: number) => {
-    onRowInteract(GetInteractType(e), id);
-}
+    const createInteractCallback = (id: number) => {
+        return (iType: InteractType) => onRowInteract(iType, id);
+    }
 
     function onRowInteract(interactType: InteractType, id: number)  {
         if (interactType === InteractType.BASIC) {
             const deselect = selectedHeaders.length === 1 && selectedHeaders[0] === id;
-            selectedHeaders.splice(0, selectedHeaders.length);
+            clearSelectedHeaders();
             if (!deselect) {
                 selectedHeaders.push(id);
             }
@@ -53,20 +50,25 @@
                     onRowInteract(InteractType.MULTISELECT, id);
                 }
                 else {
-                    // If ID < first id, select from ID to first id.
-                    // Otherwise, select from last id to ID.
-                    const start = id < selectedHeaders[0] ? id : selectedHeaders[selectedHeaders.length - 1];
-                    const end = id < selectedHeaders[0] ? selectedHeaders[0] : id;
-                    // I'm lazy and don't wanna select a range of existing headers.
-                    // Will backfire as databases grow/get old
-                    for (let i = start; i < end+1; i++) {
-                        selectedHeaders.push(i);
+                    let min = Math.min(id, selectedHeaders[0]);
+                    let max = Math.max(id, selectedHeaders[selectedHeaders.length-1]);
+                    clearSelectedHeaders();
+                    for (const header of headers) {
+                        if (header.id >= min && header.id <= max) {
+                            selectedHeaders.push(header.id);
+                        }
                     }
                 }
             }
         }
         else if (interactType === InteractType.ESCAPE) {
             selectedHeaders.splice(0, selectedHeaders.length);
+        }
+
+        // Inform parent of change every click except for double click
+        if (interactType === InteractType.DOUBLE) {
+            clearSelectedHeaders();
+            onQuickToggle(id);
         }
     }
 
@@ -81,10 +83,10 @@
                     <th>Name</th>
                 </tr>
                 {#each headers as header}
-                    <tr tabindex="0" onclick={(e) => onRowClick(e, header.id)} onkeypress={(e) => onRowKeyboard(e, header.id)}>
+                    <InteractHandler oninteract={createInteractCallback(header.id)} type="tr">
                         <td class={`${selectedHeaders.includes(header.id) ? 'selectedRow' : ''}`}>{header.id}</td>
                         <td class={`${selectedHeaders.includes(header.id) ? 'selectedRow' : ''}`}>{header.name}</td>
-                    </tr>
+                    </InteractHandler>
                 {/each}
             </tbody>
         </table>
@@ -94,6 +96,7 @@
 <style>
     .content {
         border: rgb(83, 83, 83) solid 1px;
+        min-width: 200px;
     }
     td {
         user-select: none;
@@ -104,7 +107,7 @@
         text-align: left;
         border-collapse: collapse;
     }
-    .select-table tbody tr:hover td {
+    :global(tr:hover) td {
         background-color: var(--select-color);
     }
     .selectedRow {

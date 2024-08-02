@@ -1,16 +1,16 @@
-type MouseElementEvent = MouseEvent & {
+export type MouseElementEvent = MouseEvent & {
     currentTarget: EventTarget & HTMLElement;
 }
 
-type KeyboardElementEvent = KeyboardEvent & {
+export type KeyboardElementEvent = KeyboardEvent & {
     currentTarget: EventTarget & HTMLElement;
 }
 
-const IsMouseEvent = (e?: MouseElementEvent | KeyboardElementEvent): e is MouseElementEvent => {
+export const IsMouseEvent = (e?: MouseElementEvent | KeyboardElementEvent): e is MouseElementEvent => {
     return e != undefined && "button" in e;
 }
 
-const IsKeyboardEvent = (e?: MouseElementEvent | KeyboardElementEvent): e is KeyboardElementEvent => {
+export const IsKeyboardEvent = (e?: MouseElementEvent | KeyboardElementEvent): e is KeyboardElementEvent => {
     return e !== undefined && "key" in e;
 }
 
@@ -49,7 +49,7 @@ export function GetInteractType(e: MouseElementEvent | KeyboardElementEvent): In
             iType = InteractType.RANGESELECT;
         }
         else if (!e.ctrlKey && !e.shiftKey) {
-            iType = InteractType.BASIC
+            iType = e.detail === 2 ? InteractType.DOUBLE : InteractType.BASIC;
         }
     }
     else if (IsKeyboardEvent(e)) {
