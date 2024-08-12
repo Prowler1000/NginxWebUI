@@ -1,5 +1,11 @@
 <script lang="ts">
-
+    interface Props  {
+        oninteract: () => void,
+        children?: any
+    }
+    const {
+        children = undefined
+    }: Props = $props();
 </script>
 
 <div class="page-ctr">
@@ -10,7 +16,9 @@
         </nav>
     </div>
     <div class="content_ctr">
-        <slot/>
+        {#if children}
+            {@render children()}
+        {/if}
     </div>
 </div>
 

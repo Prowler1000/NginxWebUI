@@ -1,77 +1,86 @@
 <script lang="ts">
 	import InteractableDiv from "$lib/accessibility/InteractableDiv.svelte";
-	import { type Header } from "@prisma/client";
-	import HeaderSelectBox from "./HeaderSelectBox.svelte";
-	import InteractHandler from "./InteractHandler.svelte";
+	import type { ProxyServer, Scheme, Server } from "@prisma/client";
+	import { onMount } from "svelte";
 
     type Props = {
         id: number,
+        enabled: boolean,
         name: string,
         hostname: string,
         http_port: number,
         ssl_port: number,
-        enabled_headers: Header[],
-        all_headers: Header[]
+        use_ssl: boolean,
+
+        scheme: "HTTP" | "HTTPS",
+        forward_server: string,
+        forward_port: number,
+
+        server_id: number,
     }
-    const {
+    let {
         id,
+        enabled,
         name,
         hostname,
         http_port,
         ssl_port,
-        enabled_headers,
-        all_headers
+        use_ssl,
+
+        scheme,
+        forward_server,
+        forward_port,
+
+        server_id,
     }: Props = $props();
 
-    let mod_name = $state(name);
-    let mod_hostname = $state(hostname);
-    let mod_http_port = $state(http_port);
-    let mod_ssl_port = $state(ssl_port);
-
-    // Whether a header is enabled or disabled
-    let headersStatus: Record<number, boolean> = $state(Object.assign({}, ...all_headers.map(header => {
-        return {
-            [header.id]: enabled_headers.some(x => x.id === header.id)
-        };
-    })));
-    
-    let mod_enabled_headers = $derived(all_headers.filter(header => headersStatus[header.id]));
-    let mod_disabled_headers = $derived(all_headers.filter(header => !headersStatus[header.id]));
-
-    let disabledHeadersSelected: number[] = $state([]);
-    let enabledHeadersSelected: number[] = $state([]);
+    let saved_server: Server;
+    let saved_proxy: ProxyServer;
 
     let canSave = $state(false);
     let showDetails = $state(true);
 
-    function headerQuickEnable(id: number) {
-        headersStatus[id] = true;
-        checkCanSave();
-    }
-    function headerQuickDisable(id: number) {
-        headersStatus[id] = false;
-        checkCanSave();
-    }
-
-    function headers_equal(a: Header[], b: Header[]): boolean {
-        if (a === b) return true;
-        if (a == null || b == null) return false;
-        if (a.length != b.length) return false;
-        return true && 
-            a.every(x => b.some(y => y.id === x.id)) &&
-            b.every(x => a.some(y => y.id === x.id))
-    }
+    onMount(() => {
+        saved_server = {
+            id: server_id,
+            enable: enabled,
+            name: name,
+            hostname: hostname,
+            http_port: http_port,
+            ssl_port: ssl_port,
+            use_ssl: use_ssl,
+        }
+        saved_proxy = {
+            id: id,
+            forward_scheme: scheme,
+            forward_server: forward_server,
+            forward_port: forward_port,
+            serverId: server_id,
+        }
+    })
 
     let timer: NodeJS.Timeout | undefined = undefined;
-    function setCanSave() {
-        canSave = !(
-            mod_name === name &&
-            mod_hostname === hostname &&
-            mod_http_port === http_port &&
-            mod_ssl_port === ssl_port &&
-            headers_equal($state.snapshot(mod_enabled_headers), enabled_headers)
+    function server_has_changes(): boolean {
+        return !(
+            saved_server.name === name &&
+            saved_server.enable === enabled &&
+            saved_server.hostname === hostname &&
+            saved_server.http_port === http_port &&
+            saved_server.ssl_port === ssl_port &&
+            saved_server.use_ssl === use_ssl
         )
     }
+    function proxy_has_changes(): boolean {
+        return !(
+            saved_proxy.forward_scheme === scheme &&
+            saved_proxy.forward_server === forward_server &&
+            saved_proxy.forward_port === forward_port
+        )
+    }
+    function setCanSave() {
+        canSave = server_has_changes() || proxy_has_changes();
+    }
+
     function checkCanSave(timeout_dur = 500) {
         if (timer) {
             clearTimeout(timer);
@@ -79,50 +88,46 @@
         timer = setTimeout(setCanSave, timeout_dur)
     }
 
-    function enable_selected() {
-        for (const id of disabledHeadersSelected) {
-            headersStatus[id] = true;
-        }
-        if (disabledHeadersSelected.length > 0) {
-            enabledHeadersSelected = disabledHeadersSelected.map(x => x);
-            disabledHeadersSelected = [];
-            checkCanSave();
-        }
-    }
-
-    function disable_selected() {
-        for (const id of enabledHeadersSelected) {
-            headersStatus[id] = false;
-        }
-        if (enabledHeadersSelected.length > 0) {
-            disabledHeadersSelected = enabledHeadersSelected.map(x => x);
-            enabledHeadersSelected = [];
-            checkCanSave();
+    function create_server_object(): Server {
+        return {
+            id: server_id,
+            enable: enabled,
+            name: name,
+            hostname: hostname,
+            http_port: http_port,
+            ssl_port: ssl_port,
+            use_ssl: use_ssl,
         }
     }
 
-    function onfieldinput(e: Event & { currentTarget: EventTarget & HTMLInputElement }) {
-        switch (e.currentTarget.id) {
-            case "name":
-                modifiedProps.name = e.currentTarget.value;
-                break;
-            case "hostname":
-                modifiedProps.hostname = e.currentTarget.value;
-                break;
-            case "http_port":
-                modifiedProps.http_port = Number(e.currentTarget.value);
-                break;
-            case "ssl_port":
-                modifiedProps.ssl_port = Number(e.currentTarget.value);
-                break;
-            default:
-                break;
+    function create_proxy_server_object(): ProxyServer {
+        return {
+            id: id,
+            forward_scheme: scheme,
+            forward_server: forward_server,
+            forward_port: forward_port,
+            serverId: server_id,
         }
-        checkCanSave();
     }
 
-    function save() {
+    async function save() {
+        if (server_has_changes()) {
+            const serverObj = create_server_object();
+            const res = await fetch("/api/v1/servers/Update-Create-Server", {
+                method: 'POST',
+                body: JSON.stringify(serverObj),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res.ok) {
+                saved_server = serverObj;
+            }
+        }
+        if (proxy_has_changes()) {
 
+        }
+        setCanSave();
     }
 
     function toggleShowDetails() {
@@ -136,16 +141,16 @@
             {id}
         </div>
         <div class="name">
-            <input id="name" type="text" value={name} oninput={onfieldinput}/>
+            <input id="name" type="text" bind:value={name} oninput={() => checkCanSave()}/>
         </div>
         <div class="hostname">
-            <input id="hostname" type="text" value={hostname} oninput={onfieldinput}/>
+            <input id="hostname" type="text" bind:value={hostname} oninput={() => checkCanSave()}/>
         </div>
         <div class="port">
-            <input id="http_port" type="number" value={http_port} oninput={onfieldinput}/>
+            <input id="http_port" type="number" bind:value={http_port} oninput={() => checkCanSave()}/>
         </div>
         <div class="port">
-            <input id="ssl_port" type="number" value={ssl_port} oninput={onfieldinput}/>
+            <input id="ssl_port" type="number" bind:value={ssl_port} oninput={() => checkCanSave()}/>
         </div>
 
         <InteractableDiv class={`show-details ${showDetails ? 'rot-90' : ''}`} oninteract={toggleShowDetails}>
@@ -158,26 +163,53 @@
     </div>
     {#if showDetails}
         <div class="details-ctr">
-            <div class="headers-ctr">
-                <HeaderSelectBox 
-                    headers={mod_disabled_headers} 
-                    bind:selectedHeaders={disabledHeadersSelected}
-                    onQuickToggle={headerQuickEnable}>
-                </HeaderSelectBox>
-                <div class="btn-ctr">
-                    <InteractHandler oninteract={enable_selected} type="div" class="interact-handler">
-                        <span class="material-icons">keyboard_double_arrow_right</span>
-                    </InteractHandler>
-                    <InteractHandler oninteract={disable_selected} type="div" class="interact-handler">
-                        <span class="material-icons">keyboard_double_arrow_left</span>
-                    </InteractHandler>
+            <div class="proxy-settings-ctr">
+                <div class="proxy-settings-title">
+                    Proxy Settings:
                 </div>
-                <HeaderSelectBox 
-                    headers={mod_enabled_headers} 
-                    bind:selectedHeaders={enabledHeadersSelected}
-                    onQuickToggle={headerQuickDisable}>
-                </HeaderSelectBox>
+                <div class="proxy-settings-inputs">
+                    <div class="proxy-setting">
+                        <label for="scheme">Forward Scheme:</label>
+                        <select id="scheme" bind:value={scheme} onchange={() => checkCanSave()}>
+                            <option value="HTTP">HTTP</option>
+                            <option value="HTTPS">HTTPS</option>
+                        </select>
+                    </div>
+                    <div class="proxy-setting">
+                        <label for="fwd_server_input">Forward Server:</label>
+                        <div class="input-ctr"> <input id="fwd_server_input" type="text" bind:value={forward_server} oninput={() => checkCanSave()}/> </div>
+                    </div>
+                    <div class="proxy-setting">
+                        <label for="fwd_port_input">Forward Port:</label>
+                        <div class="input-ctr"> <input id="fwd_port_input" type="number" bind:value={forward_port} oninput={() => checkCanSave()}/> </div>
+                    </div>
+                </div>
+                
             </div>
+<!--        RE-ADD LATER
+            <div class="headers-ctr">
+                <div class="header-item">
+                    <label for="ref-policy-input">Referrer Policy:</label> 
+                    <div class="input-ctr"><input id="ref-policy-input" type="text" bind:value={ref_policy} oninput={onfieldinput}/></div>
+                </div>
+                <div class="header-item">
+                    <label for="csp-input">Content Security Policy:</label> 
+                    <div class="input-ctr"><input id="csp-input" type="text" bind:value={content_security_policy} oninput={onfieldinput}/></div>
+                </div>
+                <div class="header-item">
+                    <label for="sts-input">Strict Transport Security:</label> 
+                    <div class="input-ctr"><input id="sts-input" type="text" bind:value={strict_transport_security} oninput={onfieldinput}/></div>
+                </div>
+                <div class="header-item">
+                    <label for="perm-policy-input">Permissions Policy:</label> 
+                    <div class="input-ctr"><input id="perm-policy-input" type="text" bind:value={permissions_policy} oninput={onfieldinput}/></div>
+                </div>
+                <div class="header-item">
+                    <label for="xss-policy-input">XSS Protection:</label> 
+                    <div class="input-ctr"><input id="xss-policy-input" type="text" bind:value={xss_protection} oninput={onfieldinput}/></div>
+                </div>
+            </div>
+-->
         </div>
     {/if}
 </div>
@@ -220,6 +252,56 @@
     :global(.grayed-out)  {
         filter: contrast(0);
     }
+
+    .details-ctr {
+    }
+    .proxy-settings-ctr {
+        margin: 0;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .proxy-settings-title {
+        margin: auto;
+    }
+    .proxy-settings-inputs {
+        margin: auto;
+        width: 100%;
+    }
+    .proxy-setting {
+        display: flex;
+        margin: 5px;
+    }
+    .proxy-setting label {
+        width: 50%;
+        text-align: right;
+    }
+    .headers-ctr {
+        margin: 0;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .header-item {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin: 5px 25%;
+    }
+    .header-item label {
+        width: 25%;
+        text-align: left;
+    }
+    .header-item .input-ctr {
+        width: 25%;
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        margin-right: 10px;
+    }
+
     @keyframes rotate90 {
         0% {
             transform: translateY(0%) rotate(0deg);
@@ -235,29 +317,5 @@
         0% {
             transform: translateY(-15%) rotate(90deg);
         }
-    }
-
-    .details-ctr {
-        margin: 0;
-        padding: 10px;
-        display: flex;
-        width: 100%;
-        justify-content: left;
-    }
-    .headers-ctr {
-        display: flex;
-    }
-    .headers-ctr .btn-ctr {
-        padding: 0 10px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    :global(.headers-ctr .btn-ctr .interact-handler) {
-        outline: solid black 1px;
-        margin: auto;
-        padding: 0;
-        display: flex;
     }
 </style>

@@ -1,7 +1,7 @@
 import type { RequestHandler } from "./$types";
 import { ParseSearchParams, ParseBoolean, ParseNumArrayQuery } from "$lib/server/parser";
 import prisma from "$lib/server/db";
-import { ContentType, ResponseHelper, Status } from "$lib/server/responseHelper";
+import { ContentType, ResponseHelper, Status } from "$lib/server/RESTHelpers";
 import { stringQueryGen } from "$lib/server/queryHelper";
 
 /*  Parameters
@@ -35,8 +35,6 @@ export const GET: RequestHandler = async ({ url }) => {
     const http_ports = ParseNumArrayQuery(params["http-port"]);
     const ssl_ports = ParseNumArrayQuery(params["ssl-port"]);
     const use_ssl = ParseBoolean(params["use-ssl"]);
-
-    const inc_headers = ParseBoolean(params["include-headers"] ?? true);
     try {
         const results = await prisma.server.findMany({
             where: {
@@ -46,13 +44,6 @@ export const GET: RequestHandler = async ({ url }) => {
                 http_port: http_ports,
                 ssl_port: ssl_ports,
                 use_ssl: use_ssl
-            },
-            include: {
-                ServerHeader: inc_headers && {
-                    select: {
-                        header: true
-                    }
-                }
             }
         })
         return new Response(JSON.stringify(results), 

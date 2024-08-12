@@ -1,6 +1,6 @@
 import prisma from "$lib/server/db";
-import { ParseEnum, ParseInt, ParseNumArrayQuery, ParseSearchParams } from "$lib/server/parser";
-import { ContentType, ResponseHelper, Status } from "$lib/server/responseHelper";
+import { ParseBoolean, ParseEnum, ParseInt, ParseNumArrayQuery, ParseSearchParams } from "$lib/server/parser";
+import { ContentType, ResponseHelper, Status } from "$lib/server/RESTHelpers";
 import { Scheme } from "@prisma/client";
 import type { RequestHandler } from "@sveltejs/kit";
 
@@ -20,6 +20,7 @@ export const GET: RequestHandler = async ({ url }): Promise<Response> => {
     const scheme = ParseEnum(Scheme, params["scheme"]);
     const fwd_server = params["forward-server"];
     const fwd_port = ParseInt(params["forward-port"]);
+    const include_server = ParseBoolean(params["includeServer"] ?? false);
 
     try {
         const results = await prisma.proxyServer.findMany({
@@ -29,6 +30,9 @@ export const GET: RequestHandler = async ({ url }): Promise<Response> => {
                 forward_scheme: scheme,
                 forward_server: fwd_server,
                 forward_port: fwd_port,
+            },
+            include: {
+                server: include_server
             }
         })
         return new ResponseHelper()

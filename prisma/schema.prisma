@@ -10,44 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Header {
-  id           Int            @id @default(autoincrement())
-  name         String
-  value        String?
-  ServerHeader ServerHeader[]
-  @@unique([name, value])
-}
-
 model Server {
-  id           Int            @id @default(autoincrement())
-  enable       Boolean        @default(true)
-  name         String
-  hostname     String
-  http_port    Int
-  ssl_port     Int
-  use_ssl      Boolean
-  ServerHeader ServerHeader[]
-  ProxyServer  ProxyServer[]
+  id                 Int     @id @default(autoincrement())
+  enable             Boolean @default(true)
+  name               String
+  hostname           String
+  http_port          Int
+  ssl_port           Int
+  use_ssl            Boolean
+
+  ProxyServer ProxyServer[]
 
   @@unique(name: "http_endpoint", [hostname, http_port])
   @@unique(name: "ssl_endpoint", [hostname, ssl_port])
 }
 
-model ServerHeader {
-  header   Header @relation(fields: [headerId], references: [id])
-  headerId Int
-  server   Server @relation(fields: [serverId], references: [id])
-  serverId Int
-
-  @@id([headerId, serverId])
-}
-
 model ProxyServer {
-  id                Int               @id @default(autoincrement())
-  server            Server            @relation(fields: [serverId], references: [id])
-  forward_scheme    Scheme            @default(HTTP)
-  forward_server    String
-  forward_port      Int
+  id             Int    @id @default(autoincrement())
+  server         Server @relation(fields: [serverId], references: [id])
+  forward_scheme Scheme @default(HTTP)
+  forward_server String
+  forward_port   Int
 
   serverId Int
 }
