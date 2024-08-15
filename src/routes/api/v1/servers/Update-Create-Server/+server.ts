@@ -15,19 +15,32 @@ export const POST: RequestHandler = async ({ request }) => {
             helper.SetClientError("id not supplied.");
         }
         else {
-            const server = json as Server;
-            const id = (json["id"] ?? server["id"]) as number;
-            const result = await prisma.server.upsert({
-                where: {
-                    id: id
-                },
-                update: server,
-                create: server,
-            });
-            helper.ResponseJSON = result;
+            const request_server = json as Server;
+            const server = {
+                enable: request_server.enable,
+                name: request_server.name,
+                hostname: request_server.hostname,
+                http_port: request_server.http_port,
+                ssl_port: request_server.ssl_port,
+                use_ssl: request_server.use_ssl,
+            };
+            const id = request_server.id;
+            try {
+                const result = await prisma.server.upsert({
+                    where: {
+                        id: id
+                    },
+                    update: server,
+                    create: server,
+                });
+                helper.ResponseJSON = result;
+            }
+            catch (e) {
+                helper.SetInternalError(`An error occured while accessing the database. ${e}`);
+            }
         }
         
     }
-
+    
     return helper.Response;
 }

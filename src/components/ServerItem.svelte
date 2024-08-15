@@ -17,21 +17,24 @@
         forward_port: number,
 
         server_id: number,
+
+        save_callback?: () => void,
     }
     let {
-        id,
-        enabled,
-        name,
-        hostname,
-        http_port,
-        ssl_port,
-        use_ssl,
+        id = $bindable(),
+        enabled = $bindable(),
+        name = $bindable(),
+        hostname = $bindable(),
+        http_port = $bindable(),
+        ssl_port = $bindable(),
+        use_ssl = $bindable(),
 
-        scheme,
-        forward_server,
-        forward_port,
+        scheme = $bindable(),
+        forward_server = $bindable(),
+        forward_port = $bindable(),
 
-        server_id,
+        server_id = $bindable(),
+        save_callback,
     }: Props = $props();
 
     let saved_server: Server;
@@ -121,13 +124,28 @@
                 }
             });
             if (res.ok) {
-                saved_server = serverObj;
+                const newServerObj = (await res.json()) as Server;
+                server_id = newServerObj.id;
+                saved_server = newServerObj;
             }
         }
         if (proxy_has_changes()) {
-
+            const proxyObj = create_proxy_server_object();
+            const res = await fetch("/api/v1/servers/Update-Create-Proxy", {
+                method: 'POST',
+                body: JSON.stringify(proxyObj),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            if (res.ok) {
+                const newProxyObj = (await res.json()) as ProxyServer;
+                id = newProxyObj.id;
+                saved_proxy = newProxyObj;
+            }
         }
         setCanSave();
+        save_callback();
     }
 
     function toggleShowDetails() {
