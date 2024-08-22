@@ -1,7 +1,7 @@
 import { ParseBoolean, ParseInt } from "$lib/server/parser";
 import assert from "assert";
-import type { RequestHandler } from "../$types";
-import { ResponseHelper, Status } from "$lib/server/responseHelper";
+import type { RequestHandler } from "@sveltejs/kit";
+import { ResponseHelper, Status } from "$lib/server/RESTHelpers";
 import prisma from "$lib/server/db";
 
 interface ServerObject {

@@ -1,5 +1,6 @@
 import { ParseEnum, ValidEnum } from "$lib/server/parser";
-import { ResponseHelper, Status } from "$lib/server/responseHelper";
+import type { RequestHandler } from "@sveltejs/kit";
+import { ResponseHelper, Status } from "$lib/server/RESTHelpers";
 import { Scheme } from "@prisma/client";
 import assert from "assert";
 
