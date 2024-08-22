@@ -42,14 +42,18 @@
     }
 
     function add_server() {
-        for (let s of servers) {
-            console.log(s.id);
+        if (servers.some(x => x.id === 0)) {
+            return; // Early return if we already have an unsaved server
         }
-        servers.push(default_proxy)
+        servers.push(structuredClone(default_proxy))
     }
 
     function on_save() {
         sortServers();
+    }
+
+    function on_delete(id: number) {
+        servers = servers.filter(x => x.id !== id);
     }
 
     const sortId = (a: dataServerType, b: dataServerType) => {
@@ -81,11 +85,29 @@
             bind:server_id={server.serverId}
 
             save_callback={on_save}
+            delete_callback={() => on_delete(server.id)}
         />
     {/each}
-    <button onclick={add_server}>Add Server</button>
+    <div class="btn-ctr">        
+        <button onclick={add_server}>Add Server</button>
+    </div>
 </div>
 
 <style>
-    
+    .server-ctr {
+        display: flex;
+        flex-direction: column;
+    }
+    .btn-ctr {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin-top: 50px;
+    }
+    button {
+        margin: auto;
+        width: 15%;
+        font-size: large;
+        padding: 10px;
+    }
 </style>
