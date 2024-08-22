@@ -19,6 +19,7 @@
         server_id: number,
 
         save_callback?: () => void,
+        delete_callback?:() => void,
     }
     let {
         id = $bindable(),
@@ -35,6 +36,7 @@
 
         server_id = $bindable(),
         save_callback,
+        delete_callback,
     }: Props = $props();
 
     let saved_server: Server;
@@ -42,6 +44,8 @@
 
     let canSave = $state(false);
     let showDetails = $state(true);
+    let can_delete = $derived(id !== 0);
+    let confirm_delete = $state(false);
 
     onMount(() => {
         saved_server = {
@@ -145,11 +149,41 @@
             }
         }
         setCanSave();
-        save_callback();
+        if (save_callback) save_callback();
+    }
+
+    async function del() {
+        if (!confirm_delete) {
+            return // Don't continue if the confirmation elements aren't visible
+        }
+        const res = await fetch("/api/v1/servers/Delete-Proxy", {
+            method: 'POST',
+            body: JSON.stringify({id: id}),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        if (res.ok) {
+            const res2 = await fetch("/api/v1/servers/Delete-Server", {
+                method: 'POST',
+                body: JSON.stringify({id: server_id}),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res2.ok) {
+                confirm_delete = false;
+                if (delete_callback) delete_callback();
+            }
+        }
     }
 
     function toggleShowDetails() {
         showDetails = !showDetails;
+    }
+
+    function deleteToggle() {
+        confirm_delete = !confirm_delete;
     }
 </script>
 
@@ -178,6 +212,20 @@
         <InteractableDiv class={`save-btn ${canSave ? '' : 'grayed-out'}`} oninteract={save}>
             <span class="material-icons">save</span>
         </InteractableDiv>
+
+        <div class="delete-ctr">
+            {#if can_delete}
+                <InteractableDiv class={`delete-btn ${confirm_delete ? 'invisible' : ''}`} oninteract={deleteToggle}>
+                    <span class="material-icons">delete</span>
+                </InteractableDiv>
+                <InteractableDiv class={`delete-cancel ${confirm_delete ? '' : 'invisible'}`} oninteract={deleteToggle}>
+                    <span class="material-icons">close</span>
+                </InteractableDiv>
+                <InteractableDiv class={`delete-confirm ${confirm_delete ? '' : 'invisible'}`} oninteract={del}>
+                    <span class="material-icons">check</span>
+                </InteractableDiv>
+            {/if}
+        </div>
     </div>
     {#if showDetails}
         <div class="details-ctr">
@@ -269,6 +317,17 @@
     }
     :global(.grayed-out)  {
         filter: contrast(0);
+    }
+
+    .delete-ctr {
+        width: 10%;
+        display: flex;
+    }
+    :global(.delete-btn) {
+
+    }
+    :global(.invisible) {
+        display: none;
     }
 
     .details-ctr {

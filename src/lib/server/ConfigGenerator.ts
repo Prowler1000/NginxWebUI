@@ -12,9 +12,9 @@ export async function GenerateSiteConfigs() {
             serverId: true,
         }
     });
-    const data = [];
+    const data: { [key: string]: string } = {};
     for (const site of sites) {
-        data.push(await GenerateSiteConfig(site));
+        data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
     }
     return data;
 }
@@ -45,7 +45,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
     else {
         data = site as ProxyServer & {server: Server};
     }
-    return `
+    const conf = `
         server {
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} quic;` : ''}
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} ssl;` : ''}
@@ -53,7 +53,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
 
             include /etc/nginx/ssl.conf; # Should probably make this configurable
 
-            set $forward_scheme ${data.forward_scheme};
+            set $forward_scheme ${data.forward_scheme.toLowerCase()};
             set $server "${data.forward_server}";
             set $port ${data.forward_port};
 
@@ -70,6 +70,7 @@ ${(await GenerateProxyDeclarations()).map(dec => `                ${dec}`).join(
             }
         }
     `;
+    return justify(conf);
 }
 
 async function GenerateGeneralHeaders() {
@@ -116,7 +117,7 @@ async function GenerateProxyDeclarations() {
 
 export async function GenerateNginxConfig() {
     // No DB calls for this function for now
-    return `
+    const conf = `
         worker_processes auto;
         worker_rlimit_nofile 300000;
 
@@ -173,4 +174,20 @@ export async function GenerateNginxConfig() {
             }
         }
     `
+    return justify(conf);
+}
+
+function justify(content: string, ws_per_tab=4, initial_ws=2) {
+    let split = content.split("\n");
+    if (split.length > 0 && split[0].length == 0) {
+        split = split.slice(1);
+    }
+    let justified_content = "";
+    for (const line of split) {
+        const whitespace = line.search(/\S|$/);
+        const tabs = (whitespace / ws_per_tab) - initial_ws > 0 ? (whitespace / ws_per_tab) - initial_ws : 0;
+        const prefix = "\t".repeat(tabs);
+        justified_content += prefix + line.trimStart() + "\n";
+    }
+    return justified_content;
 }

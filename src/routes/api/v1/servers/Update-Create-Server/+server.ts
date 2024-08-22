@@ -37,6 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
             catch (e) {
                 helper.SetInternalError(`An error occured while accessing the database. ${e}`);
+                console.error(e);
             }
         }
         
