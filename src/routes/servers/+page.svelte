@@ -1,7 +1,11 @@
 <script lang="ts">
-	import { Prisma, Scheme, type ProxyServer } from "@prisma/client";
 	import ServerItem from "../../components/ServerItem.svelte";
 	import { onMount } from "svelte";
+
+    enum Scheme {
+        HTTP = "HTTP",
+        HTTPS = "HTTPS",
+    }
 
     interface dataServerType {
         id: number;
@@ -11,7 +15,7 @@
         http_port: number;
         ssl_port: number;
         use_ssl: boolean;
-        forward_scheme: Scheme;
+        forward_scheme: "HTTP" | "HTTPS";
         forward_server: string;
         forward_port: number;
         serverId: number;
@@ -35,7 +39,7 @@
         http_port: 80,
         ssl_port: 443,
         use_ssl: true,
-        forward_scheme: Scheme.HTTP,
+        forward_scheme: "HTTP",
         forward_server: "",
         forward_port: 0,
         serverId: 0,
@@ -45,7 +49,10 @@
         if (servers.some(x => x.id === 0)) {
             return; // Early return if we already have an unsaved server
         }
-        servers.push(structuredClone(default_proxy))
+        servers.push(structuredClone({
+            ...default_proxy,
+            forward_scheme: "HTTP" as Scheme
+        }));
     }
 
     function on_save() {
