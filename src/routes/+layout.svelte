@@ -12,6 +12,7 @@
     <div class="nav-ctr">
         <nav>
             <a href="/">Home</a>
+            <a href="/auth">Auth</a>
             <a href="/servers">Servers</a>
         </nav>
     </div>
@@ -33,6 +34,8 @@
     nav a {
         margin-left: 10px;
         margin-right: 10px;
+        text-decoration: none;
+        color: rgb(44, 35, 168)
     }
     .page-ctr {
     }

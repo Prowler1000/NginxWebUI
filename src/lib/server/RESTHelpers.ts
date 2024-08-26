@@ -3,6 +3,7 @@ import assert from "node:assert";
 export enum ContentType {
     JSON = "application/json",
     TEXT = "text/plain",
+    NONE = ""
 }
 
 export enum Status {

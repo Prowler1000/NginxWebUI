@@ -1,4 +1,4 @@
-import { type ProxyServer, type Server } from "@prisma/client"
+import { type Auth, type ProxyServer, type Server } from "@prisma/client"
 
 export async function GetAllServers(fetchFunc = fetch): Promise<Server[]> {
     const res = await fetchFunc("api/v1/servers/Get-Servers");
@@ -18,7 +18,7 @@ export async function GetAllServers(fetchFunc = fetch): Promise<Server[]> {
 }
 
 export async function GetAllProxyServers(fetchFunc = fetch): Promise<(Server & ProxyServer)[]> {
-    const res = await fetchFunc('api/v1/servers/Get-Proxies?includeServer=true');
+    const res = await fetchFunc('/api/v1/servers/Get-Proxies?includeServer=true');
     if (res.status != 200) {
         console.error(`An error occured during fetch. ${await res.text()}`)
         return []
@@ -41,5 +41,17 @@ export async function GetAllProxyServers(fetchFunc = fetch): Promise<(Server & P
             }
         })
         return array;
+    }
+}
+
+export async function GetAllAuthConfigs(fetchFunc = fetch): Promise<(Auth & {locations: Location[]})[]> {
+    const res = await fetchFunc('/api/v1/auth/Get-Auth?includeLocations=true')
+    if (res.status != 200) {
+        console.error(`An error occured during fetch. ${await res.text()}`);
+        return []
+    }
+    else {
+        const json = await res.json();
+        return json as (Auth & {locations: Location[]})[];
     }
 }
