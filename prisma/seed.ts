@@ -1,44 +1,52 @@
-import { PrismaClient } from "@prisma/client";
-import data from "../data.json" assert { type: "json" }
+import { Location, PrismaClient, Scheme } from "@prisma/client";
+import seed from "./seed.json" assert { type: "json" }
 
 const prisma = new PrismaClient();
 async function main() {
     console.log("Seeding started.");
-
-    console.log("Seeding Headers..");
-    for (const headers of data.headers) {
-        const header = await prisma.header.create({
-            data: {
-                name: headers.name,
-                value: headers.value,
-            }
-        })
-        console.log(`Created header '${header.name}' with id: ${header.id}`);
-    }
-    console.log("Seeding Servers..");
-    for (const servers of data.servers) {
+    console.log("Seeding servers...");
+    for (const seedProxy of seed.proxy_servers) {
         const server = await prisma.server.create({
             data: {
-                name: servers.name,
-                hostname: servers.hostname,
-                http_port: servers.http_port,
-                ssl_port: servers.ssl_port,
-                use_ssl: servers.use_ssl
+                name: seedProxy.server.name,
+                hostname: seedProxy.server.hostname,
+                http_port: seedProxy.server.http_port,
+                ssl_port: seedProxy.server.ssl_port,
+                use_ssl: true,
+            }
+        });
+        const proxy = await prisma.proxyServer.create({
+            data: {
+                forward_scheme: Scheme[seedProxy.forward_scheme],
+                forward_server: seedProxy.forward_server,
+                forward_port: seedProxy.forward_port,
+                serverId: server.id,
             }
         })
-        console.log(`Created server '${server.name}'`);
-        for (const headerName of servers.headers) {
-            const header = await prisma.header.findFirst({where: {name: headerName}});
-            if (header) {
-                const serverHeader = await prisma.serverHeader.create({
-                    data: {
-                        headerId: header.id,
-                        serverId: server.id,
-                    }
-                })
-                console.log(`Added header id '${serverHeader.headerId}' to ${server.name}`);
+        console.log(`Created proxy server with ID ${proxy.id} and associated server with ID ${server.id}`);
+    }
+    console.log("Creating auths...");
+    for (const authSeed of seed.auths) {
+        const locations: {prefix: string, location: string, directives: string[]}[] = [];
+        for (const location of authSeed.locations) {
+            locations.push({
+                prefix: location.prefix,
+                location: location.location,
+                directives: location.directives,
+            })
+        };
+        const auth = await prisma.auth.create({
+            data: {
+                name: authSeed.name,
+                auth_request: authSeed.auth_request,
+                auth_request_headers: authSeed.auth_request_headers,
+                proxy_headers: authSeed.proxy_headers,
+                locations: {
+                    create: locations
+                }
             }
-        }
+        });
+        console.log(`Created auth ${auth.name} with ID ${auth.id} and associated locations.`);
     }
     console.log("Seeding finished.");
 }

@@ -12,7 +12,7 @@
     <div class="nav-ctr">
         <nav>
             <a href="/">Home</a>
-            <a href="/auth">Auth</a>
+            <!--<a href="/auth">Auth</a>-->
             <a href="/servers">Servers</a>
         </nav>
     </div>

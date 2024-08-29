@@ -1,0 +1,235 @@
+{
+    "proxy_servers": [
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "cloudbeaver",
+            "forward_port": 8978,
+            "server": {
+                "enable": true,
+                "name": "cloudbeaver",
+                "hostname": "cloudbeaver.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "192.168.0.26",
+            "forward_port": 6052,
+            "server": {
+                "enable": true,
+                "name": "esphome",
+                "hostname": "esphome.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "192.168.1.2",
+            "forward_port": 8095,
+            "server": {
+                "enable": true,
+                "name": "musicassistant",
+                "hostname": "music.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "nextcloud",
+            "forward_port": 80,
+            "server": {
+                "enable": true,
+                "name": "nextcloud",
+                "hostname": "nextcloud.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "Duplicacy",
+            "forward_port": 80,
+            "server": {
+                "enable": true,
+                "name": "duplicacy",
+                "hostname": "duplicacy.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTPS",
+            "forward_server": "authentik",
+            "forward_port": 9443,
+            "server": {
+                "enable": true,
+                "name": "authentik",
+                "hostname": "auth.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "192.168.0.9",
+            "forward_port": 5800,
+            "server": {
+                "enable": true,
+                "name": "jdownloader",
+                "hostname": "jdownloader.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "microbin",
+            "forward_port": 8080,
+            "server": {
+                "enable": true,
+                "name": "microbin",
+                "hostname": "microbin.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "ollama",
+            "forward_port": 11434,
+            "server": {
+                "enable": true,
+                "name": "ollama",
+                "hostname": "ollama.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "open-webui",
+            "forward_port": 80,
+            "server": {
+                "enable": true,
+                "name": "openwebui",
+                "hostname": "openwebui.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "paperless-ngx",
+            "forward_port": 8000,
+            "server": {
+                "enable": true,
+                "name": "paperless",
+                "hostname": "paperless.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "prism",
+            "forward_port": 2342,
+            "server": {
+                "enable": true,
+                "name": "photoprism",
+                "hostname": "photoprism.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        },
+        {
+            "forward_scheme": "HTTP",
+            "forward_server": "web-check",
+            "forward_port": 80,
+            "server": {
+                "enable": true,
+                "name": "webcheck",
+                "hostname": "webcheck.pgcrt.ca",
+                "http_port": 80,
+                "ssl_port": 443
+            }
+        }
+    ],
+    "auths": [
+        {
+            "name": "Authentik",
+            "auth_request": "/outpost.goauthentik.io/auth/nginx",
+            "auth_request_headers": [
+                "$authentik_username $upstream_http_x_authentik_username",
+                "$authentik_groups $upstream_http_x_authentik_groups",
+                "$authentik_email $upstream_http_x_authentik_email",
+                "$authentik_name $upstream_http_x_authentik_name",
+                "$authentik_uid $upstream_http_x_authentik_uid"
+            ],
+            "proxy_headers": [
+                "X-authentik-username $authentik_username",
+                "X-authentik-groups $authentik_groups",
+                "X-authentik-email $authentik_email",
+                "X-authentik-name $authentik_name",
+                "X-authentik-uid $authentik_uid"
+            ],
+            "locations": [
+                {
+                    "prefix": "/",
+                    "location": "outpost.goauthentik.io",
+                    "directives": [
+                        "proxy_pass https://authentik:9443/outpost.goauthentik.io",
+                        "proxy_set_header X-Original-URL $scheme://$http_host$request_uri",
+                        "add_header Set-Cookie $auth_cookie",
+                        "auth_request_set $auth_cookie $upstream_http_set_cookie",
+                        "proxy_pass_request_body off",
+                        "proxy_set_header Content-Length \"\"",
+
+                        "proxy_http_version 1.1",
+                        "proxy_cache_bypass $http_upgrade",
+                        "proxy_buffers 8 16k",
+                        "proxy_buffer_size 32k",
+                        "proxy_ssl_server_name on",
+                        "proxy_ssl_name $host",
+                        "proxy_ssl_session_reuse off",
+                        "proxy_ssl_protocols TLSv1.2 TLSv1.3",
+                        "proxy_set_header Host $http_host",
+                        "proxy_set_header Upgrade $http_upgrade",
+                        "proxy_set_header Connection $connection_upgrade",
+                        "proxy_set_header X-Real-IP $remote_addr",
+                        "proxy_set_header Forwarded $proxy_add_forwarded",
+                        "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
+                        "proxy_set_header X-Forwarded-Proto $scheme",
+                        "proxy_set_header X-Forwarded-Host $host",
+                        "proxy_set_header X-Forwarded-Port $server_port",
+
+                        "add_header Strict-Transport-Security \"max-age=63072000\" always",
+                        "add_header X-XSS-Protection \"1; mode=block\" always",
+                        "add_header Referrer-Policy \"no-referrer-when-downgrade\" always",
+                        "add_header Content-Security-Policy \"default-src 'self' http: https: ws: wss: data: blob: 'unsafe-inline'; frame-ancestors 'self';\" always",
+                        "add_header Permissions-Policy \"interest-cohort=()\" always",
+                        "add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always"
+                    ]
+                },
+                {
+                    "prefix": "@",
+                    "location": "goauthentik_proxy_signin",
+                    "directives": [
+                        "internal",
+                        "add_header Set-Cookie $auth_cookie",
+                        "return 302 /outpost.goauthentik.io/start?rd=$request_uri",
+
+                        "add_header Strict-Transport-Security \"max-age=63072000\" always",
+                        "add_header X-XSS-Protection \"1; mode=block\" always",
+                        "add_header Referrer-Policy \"no-referrer-when-downgrade\" always",
+                        "add_header Content-Security-Policy \"default-src 'self' http: https: ws: wss: data: blob: 'unsafe-inline'; frame-ancestors 'self';\" always",
+                        "add_header Permissions-Policy \"interest-cohort=()\" always",
+                        "add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always"
+                    ]
+                }
+            ]
+        }
+    ]
+}

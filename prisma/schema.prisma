@@ -11,13 +11,13 @@ datasource db {
 }
 
 model Server {
-  id                 Int     @id @default(autoincrement())
-  enable             Boolean @default(true)
-  name               String
-  hostname           String
-  http_port          Int
-  ssl_port           Int
-  use_ssl            Boolean
+  id        Int     @id @default(autoincrement())
+  enable    Boolean @default(true)
+  name      String
+  hostname  String
+  http_port Int
+  ssl_port  Int
+  use_ssl   Boolean
 
   ProxyServer ProxyServer[]
 
@@ -36,19 +36,20 @@ model ProxyServer {
 }
 
 model Auth {
-  id  Int @id @default(autoincrement())
-  auth_request String @default("")
+  id                   Int      @id @default(autoincrement())
+  name                 String   @default("")
+  auth_request         String   @default("")
   auth_request_headers String[] @default([])
-  proxy_headers String[] @default([])
+  proxy_headers        String[] @default([])
 
   locations Location[]
 }
 
 // A lazy implementation of locations for now
 model Location {
-  id Int @id @default(autoincrement())
-  prefix String
-  location String
+  id         Int      @id @default(autoincrement())
+  prefix     String
+  location   String
   directives String[]
 
   Auth Auth[]
