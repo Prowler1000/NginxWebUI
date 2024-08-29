@@ -1,4 +1,4 @@
-import type { ProxyServer, Server } from "@prisma/client";
+import type { ProxyServer, Server, Location } from "@prisma/client";
 import prisma from "./db";
 
 export async function GenerateSiteConfigs() {
@@ -17,6 +17,27 @@ export async function GenerateSiteConfigs() {
         data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
     }
     return data;
+}
+
+async function GenerateLocation(location: number | Location) {
+    let data: Location
+    if (typeof location === "number") {
+        data = await prisma.location.findFirst({
+            where: {
+                id: location
+            }
+        });
+    }
+    else {
+        data = location
+    }
+
+    const conf = `
+        location ${data.prefix}${data.location} {
+${data.directives.map(directive => `            ${directive}${directive.endsWith(";") ? "" : ";"}`)}
+        }
+    `
+    return justify(conf, 4, 2);
 }
 
 async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {server: Server}) {
@@ -45,6 +66,14 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
     else {
         data = site as ProxyServer & {server: Server};
     }
+    const auth = data.server.authId ? await prisma.auth.findFirst({
+        where: {
+            id: data.server.authId,
+        },
+        include: {
+            locations: true,
+        }
+    }) : null;
     const conf = `
         server {
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} quic;` : ''}
@@ -62,12 +91,20 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             location / {
                 proxy_pass $forward_scheme://$server$:port;
 
+                ${auth != null ? `auth_request ${auth.auth_request};` : ''}
+                ${auth != null ? 'add_header Set-Cookie $auth_cookie;': ''}
+                
+${auth?.auth_request_headers.map(header => `                auth_request_set ${header}${header.endsWith(";") ? '' : ';'}`).join('\n')}
+
+${auth?.proxy_headers.map(header => `                proxy_set_header ${header}${header.endsWith(";") ? '' : ';'}`).join('\n')}
+
                 # General headers
 ${(await GenerateGeneralHeaders()).map(header => `                ${header}`).join('\n')}
 
                 # Proxy Headers
 ${(await GenerateProxyDeclarations()).map(dec => `                ${dec}`).join('\n')}
             }
+${auth?.locations.map(async (location) => await GenerateLocation(location)).join('\n')}
         }
     `;
     return justify(conf);

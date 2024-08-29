@@ -13,6 +13,7 @@ datasource db {
 model Server {
   id        Int     @id @default(autoincrement())
   enable    Boolean @default(true)
+  auth      Auth?   @relation(fields: [authId], references: [id])
   name      String
   hostname  String
   http_port Int
@@ -20,6 +21,7 @@ model Server {
   use_ssl   Boolean
 
   ProxyServer ProxyServer[]
+  authId      Int?
 
   @@unique(name: "http_endpoint", [hostname, http_port])
   @@unique(name: "ssl_endpoint", [hostname, ssl_port])
@@ -43,6 +45,8 @@ model Auth {
   proxy_headers        String[] @default([])
 
   locations Location[]
+
+  Server Server[]
 }
 
 // A lazy implementation of locations for now
