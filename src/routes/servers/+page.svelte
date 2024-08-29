@@ -43,6 +43,7 @@
         forward_server: "",
         forward_port: 0,
         serverId: 0,
+        authId: null,
     }
 
     function add_server() {
@@ -90,6 +91,8 @@
             bind:forward_server={server.forward_server}
             bind:forward_port={server.forward_port}
             bind:server_id={server.serverId}
+            bind:authId={server.authId}
+            auths={data.auths}
 
             save_callback={on_save}
             delete_callback={() => on_delete(server.id)}

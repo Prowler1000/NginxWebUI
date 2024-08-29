@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InteractableDiv from "$lib/accessibility/InteractableDiv.svelte";
-	import type { ProxyServer, Scheme, Server } from "@prisma/client";
+	import type { Auth, ProxyServer, Scheme, Server } from "@prisma/client";
 	import { onMount } from "svelte";
 
     type Props = {
@@ -11,12 +11,14 @@
         http_port: number,
         ssl_port: number,
         use_ssl: boolean,
+        authId: number | null,
 
         scheme: "HTTP" | "HTTPS",
         forward_server: string,
         forward_port: number,
 
         server_id: number,
+        auths: Auth[],
 
         save_callback?: () => void,
         delete_callback?:() => void,
@@ -33,6 +35,9 @@
         scheme = $bindable(),
         forward_server = $bindable(),
         forward_port = $bindable(),
+
+        auths,
+        authId = $bindable(),
 
         server_id = $bindable(),
         save_callback,
@@ -56,6 +61,7 @@
             http_port: http_port,
             ssl_port: ssl_port,
             use_ssl: use_ssl,
+            authId: authId,
         }
         saved_proxy = {
             id: id,
@@ -74,7 +80,8 @@
             saved_server.hostname === hostname &&
             saved_server.http_port === http_port &&
             saved_server.ssl_port === ssl_port &&
-            saved_server.use_ssl === use_ssl
+            saved_server.use_ssl === use_ssl &&
+            saved_server.authId === authId
         )
     }
     function proxy_has_changes(): boolean {
@@ -104,6 +111,7 @@
             http_port: http_port,
             ssl_port: ssl_port,
             use_ssl: use_ssl,
+            authId: authId,
         }
     }
 
@@ -178,6 +186,19 @@
         }
     }
 
+    function onAuthSelectChange(e: Event & {
+        currentTarget: EventTarget & HTMLSelectElement;
+    }) {
+        const id = Number(e.currentTarget.value);
+        if (id === -1) {
+            authId = null
+        }
+        else {
+            authId = id;
+        }
+        checkCanSave();
+    }
+
     function toggleShowDetails() {
         showDetails = !showDetails;
     }
@@ -229,6 +250,19 @@
     </div>
     {#if showDetails}
         <div class="details-ctr">
+            <div class="auth-settings-ctr">
+                <div class="auth-settings-title">
+                    Auth Settings:
+                </div>
+                <div class="auth-settings-select">
+                    <select onchange={onAuthSelectChange}>
+                        <option value={-1} selected={authId === null}>Disabled</option>
+                        {#each auths as auth}
+                            <option value={auth.id} selected={authId === auth.id}>{auth.name}</option>
+                        {/each}
+                    </select>
+                </div>
+            </div>
             <div class="proxy-settings-ctr">
                 <div class="proxy-settings-title">
                     Proxy Settings:
@@ -330,8 +364,17 @@
         display: none;
     }
 
-    .details-ctr {
+    .auth-settings-ctr {
+        margin: 0;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        flex-direction: column;
     }
+    .auth-settings-ctr *{
+        margin: auto;
+    }
+
     .proxy-settings-ctr {
         margin: 0;
         display: flex;
