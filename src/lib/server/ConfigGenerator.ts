@@ -85,7 +85,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
     else {
         data = site as ProxyServer & {server: Server};
     }
-    const auth = data.server.authId ? await prisma.auth.findFirst({
+    const auth = data.server.authId !== null ? await prisma.auth.findFirst({
         where: {
             id: data.server.authId,
         },
@@ -93,6 +93,16 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             locations: true,
         }
     }) : null;
+    // This is funky looking because I'm too lazy to make the whitespace more programatic
+    const auth_config = auth === null 
+    ? '' 
+    : `\n` +
+    `                ${auth != null ? `auth_request ${auth.auth_request};` : ''}\n\n` +
+    `                ${auth != null ? 'add_header Set-Cookie $auth_cookie;': ''}\n\n` + 
+    `${auth?.auth_request_headers.map(header => `                auth_request_set ${header}${header.endsWith(";") ? '' : ';'}`).join('\n') ?? ''}\n\n` + 
+    `${auth?.proxy_headers.map(header => `                proxy_set_header ${header}${header.endsWith(";") ? '' : ';'}`).join('\n') ?? ''}` +
+    `\n`;
+
     const conf = `
         server {
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} quic;` : ''}
@@ -109,21 +119,14 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
 
             location / {
                 proxy_pass $forward_scheme://$server:$port;
-
-                ${auth != null ? `auth_request ${auth.auth_request};` : ''}
-                ${auth != null ? 'add_header Set-Cookie $auth_cookie;': ''}
-                
-${auth?.auth_request_headers.map(header => `                auth_request_set ${header}${header.endsWith(";") ? '' : ';'}`).join('\n')}
-
-${auth?.proxy_headers.map(header => `                proxy_set_header ${header}${header.endsWith(";") ? '' : ';'}`).join('\n')}
-
+                ${auth_config}
                 # General headers
 ${(await GenerateGeneralHeaders()).map(header => `                ${header}`).join('\n')}
 
                 # Proxy Headers
 ${(await GenerateProxyDeclarations()).map(dec => `                ${dec}`).join('\n')}
             }
-${auth?.locations.map(async (location) => await GenerateLocation(location)).join('\n')}
+${auth?.locations.map(async (location) => await GenerateLocation(location)).join('\n') ?? ''}
         }
     `;
     return justify(conf);
