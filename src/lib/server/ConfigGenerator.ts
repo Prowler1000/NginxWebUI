@@ -97,9 +97,9 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
         server {
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} quic;` : ''}
             ${data.server.use_ssl ? `listen ${data.server.ssl_port} ssl;` : ''}
-            server_name ${data.server.hostname}
+            server_name ${data.server.hostname};
 
-            include /etc/nginx/ssl.conf; # Should probably make this configurable
+            include /config/nginx/ssl-default.conf; # Should probably make this configurable
 
             set $forward_scheme ${data.forward_scheme.toLowerCase()};
             set $server "${data.forward_server}";
