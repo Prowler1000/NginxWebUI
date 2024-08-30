@@ -1,6 +1,24 @@
 import type { ProxyServer, Server, Location } from "@prisma/client";
 import prisma from "./db";
 
+const default_server: ProxyServer & {server: Server} = {
+    id: 0,
+    forward_scheme: "HTTP",
+    forward_server: "127.0.0.1",
+    forward_port: 8080,
+    serverId: 0,
+    server: {
+        id: 0,
+        enable: true,
+        name: "default",
+        hostname: "_",
+        http_port: 80,
+        ssl_port: 443,
+        use_ssl: true,
+        authId: null,
+    }
+}
+
 export async function GenerateSiteConfigs() {
     const sites = await prisma.proxyServer.findMany({
         select: {
@@ -12,6 +30,7 @@ export async function GenerateSiteConfigs() {
             serverId: true,
         }
     });
+    sites.push(default_server); // Ensure the default server is always generated
     const data: { [key: string]: string } = {};
     for (const site of sites) {
         data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
@@ -179,7 +198,7 @@ export async function GenerateNginxConfig() {
             server_tokens off;
             log_not_found off;
             types_hash_max_size 2048;
-            types_has_bucket_size 64;
+            types_hash_bucket_size 64;
             client_max_body_size 0M;
 
             include /etc/nginx/mime.types;
@@ -209,6 +228,8 @@ export async function GenerateNginxConfig() {
                 # Otherwise, replace it
                 default "$proxy_forwarded_elem";
             }
+
+            include /config/sites/*.conf;
         }
     `
     return justify(conf);
