@@ -108,7 +108,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             error_log /log/${data.server.name}_error.log;
 
             location / {
-                proxy_pass $forward_scheme://$server$:port;
+                proxy_pass $forward_scheme://$server:$port;
 
                 ${auth != null ? `auth_request ${auth.auth_request};` : ''}
                 ${auth != null ? 'add_header Set-Cookie $auth_cookie;': ''}
