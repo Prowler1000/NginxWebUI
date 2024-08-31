@@ -199,6 +199,7 @@ export async function GenerateNginxConfig() {
             "types_hash_bucket_size 64",
             "client_max_body_size 0M",
             "include /etc/nginx/mime.types;",
+            "include /config/nginx/resolvers.conf;",
             "default_type application/octet-stream;\n",
             {
                 title: "map $http_update $connection_upgrade",
