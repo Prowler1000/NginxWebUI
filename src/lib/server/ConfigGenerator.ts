@@ -1,4 +1,4 @@
-import type { ProxyServer, Server, Location } from "@prisma/client";
+import type { ProxyServer, Server } from "@prisma/client";
 import prisma from "./db";
 
 const default_server: ProxyServer & {server: Server} = {
@@ -19,6 +19,30 @@ const default_server: ProxyServer & {server: Server} = {
     }
 }
 
+const WHITESPACE_STRING = "\t"
+
+interface Block {
+    title: string,
+    contents: (string | Block)[]
+}
+
+function ParseBlock(block: Block, whitespace=0) {
+    const top_level_ws = Array.from({length: whitespace}, () => WHITESPACE_STRING).join("");
+    const second_level_ws = top_level_ws + WHITESPACE_STRING;
+    let parsedBlock = `${top_level_ws}${block.title} {\n`;
+    for (const content of block.contents) {
+        if (typeof content === "string") {
+
+            parsedBlock += `${second_level_ws}${content}${content.trim().endsWith(';') ? '' : ';'}\n`;
+        }
+        else {
+            parsedBlock += ParseBlock(content, whitespace+1);
+        }
+    }
+    parsedBlock += `${top_level_ws}}\n\n`;
+    return parsedBlock;
+}
+
 export async function GenerateSiteConfigs() {
     const sites = await prisma.proxyServer.findMany({
         select: {
@@ -36,27 +60,6 @@ export async function GenerateSiteConfigs() {
         data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
     }
     return data;
-}
-
-async function GenerateLocation(location: number | Location) {
-    let data: Location
-    if (typeof location === "number") {
-        data = await prisma.location.findFirst({
-            where: {
-                id: location
-            }
-        });
-    }
-    else {
-        data = location
-    }
-
-    const conf = `
-        location ${data.prefix}${data.location} {
-${data.directives.map(directive => `            ${directive}${directive.endsWith(";") ? "" : ";"}`)}
-        }
-    `
-    return justify(conf, 4, 2);
 }
 
 async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {server: Server}) {
@@ -93,43 +96,42 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             locations: true,
         }
     }) : null;
-    // This is funky looking because I'm too lazy to make the whitespace more programatic
-    const auth_config = auth === null 
-    ? '' 
-    : `\n` +
-    `                ${auth != null ? `auth_request ${auth.auth_request};` : ''}\n\n` +
-    `                ${auth != null ? 'add_header Set-Cookie $auth_cookie;': ''}\n\n` + 
-    `${auth?.auth_request_headers.map(header => `                auth_request_set ${header}${header.endsWith(";") ? '' : ';'}`).join('\n') ?? ''}\n\n` + 
-    `${auth?.proxy_headers.map(header => `                proxy_set_header ${header}${header.endsWith(";") ? '' : ';'}`).join('\n') ?? ''}` +
-    `\n`;
-
-    const conf = `
-        server {
-            ${data.server.use_ssl ? `listen ${data.server.ssl_port} quic;` : ''}
-            ${data.server.use_ssl ? `listen ${data.server.ssl_port} ssl;` : ''}
-            server_name ${data.server.hostname};
-
-            include /config/nginx/ssl-default.conf; # Should probably make this configurable
-
-            set $forward_scheme ${data.forward_scheme.toLowerCase()};
-            set $server "${data.forward_server}";
-            set $port ${data.forward_port};
-
-            error_log /log/${data.server.name}_error.log;
-
-            location / {
-                proxy_pass $forward_scheme://$server:$port;
-                ${auth_config}
-                # General headers
-${(await GenerateGeneralHeaders()).map(header => `                ${header}`).join('\n')}
-
-                # Proxy Headers
-${(await GenerateProxyDeclarations()).map(dec => `                ${dec}`).join('\n')}
-            }
-${auth?.locations.map(async (location) => await GenerateLocation(location)).join('\n') ?? ''}
-        }
-    `;
-    return justify(conf);
+    return ParseBlock({
+        title: "server",
+        contents: [
+            // If we want to use SSL, append a list of directives, otherwise append an empty list (nothing)
+            ... data.server.use_ssl ? [
+                `listen ${data.server.ssl_port} quic`,
+                `listen ${data.server.ssl_port} ssl`
+            ] : [],
+            `server_name ${data.server.hostname}`,
+            `include /config/nginx/ssl-default.conf`,
+            `set $forward_scheme ${data.forward_scheme.toLowerCase()}`,
+            `set $server "${data.forward_server}"`,
+            `set $port ${data.forward_port}`,
+            `error_log /log/${data.server.name}_error.log`,
+            {
+                title: "location /",
+                contents: [
+                    `proxy_pass $forward_scheme://$server:$port`,
+                    ... auth !== null ? [
+                        `auth_request ${auth.auth_request}`,
+                        'add_header Set-Cookie $auth_cookie',
+                        ...auth.auth_request_headers.map(header => `auth_request_set ${header}`),
+                        ...auth.proxy_headers.map(header => `proxy_set_header ${header}`)
+                    ]: [],
+                    ... (await GenerateGeneralHeaders()),
+                    ... (await GenerateProxyDeclarations())
+                ]
+            },
+            ... auth !== null ? auth.locations.map((loc) => {
+                return {
+                    title: `location ${loc.prefix}${loc.location}`,
+                    contents: loc.directives,
+                } as Block
+            }) : []
+        ]
+    });
 }
 
 async function GenerateGeneralHeaders() {
@@ -176,79 +178,65 @@ async function GenerateProxyDeclarations() {
 
 export async function GenerateNginxConfig() {
     // No DB calls for this function for now
-    const conf = `
-        worker_processes auto;
-        worker_rlimit_nofile 300000;
+    const events: Block = {
+        title: "events",
+        contents: [
+            "multi_accept on",
+            "worker_connection 65535"
+        ]
+    };
+    const http: Block = {
+        title: "http",
+        contents: [
+            "http2 on",
+            "http3 on",
+            "carset utf-8",
+            "sendfile on",
+            "tcp_nopush on;",
+            "server_tokens off",
+            "log_not_found off",
+            "types_hash_max_size 2048",
+            "types_hash_bucket_size 64",
+            "client_max_body_size 0M",
+            "include /etc/nginx/mime.types;",
+            "default_type application/octet-stream;\n",
+            {
+                title: "map $http_update $connection_upgrade",
+                contents: [
+                    `default upgrade;`,
+                    `""      close;`
+                ]
+            },
+            {
+                title: "map $remote_addr $proxy_forwarded_elem",
+                contents: [
+                    `# IPv4 addresses can be sent as-is`,
+                    `~^[0-9.]+$        "for=$remote_addr";`,
 
-        include /etc/nginx/modules-enabled/*.conf;
+                    `# IPv6 addresses need to be bracketed and quoted`,
+                    `~^[0-9A-Fa-f:.]+$ "for=\\"[$remote_addr]\\"";`,
 
-        pcre_jit on;
-
-        error_log /log/error.log warn;
-
-        events {
-            multi_accept on;
-            worker_connections 65535;
-        }
-        
-        http {
-            http2 on;
-            http3 on;
-            charset utf-8;
-            sendfile on;
-            tcp_nopush on;
-            tcp_nodelay on;
-            server_tokens off;
-            log_not_found off;
-            types_hash_max_size 2048;
-            types_hash_bucket_size 64;
-            client_max_body_size 0M;
-
-            include /etc/nginx/mime.types;
-            default_type application/octet-stream;
-
-            map $http_update $connection_upgrade {
-                default upgrade;
-                ""      close;
-            }
-
-            map $remote_addr $proxy_forwarded_elem {
-
-                # IPv4 addresses can be sent as-is
-                ~^[0-9.]+$        "for=$remote_addr";
-
-                # IPv6 addresses need to be bracketed and quoted
-                ~^[0-9A-Fa-f:.]+$ "for=\\"[$remote_addr]\\"";
-
-                # Unix domain socket names cannot be represented in RFC 7239 syntax
-                default           "for=unknown";
-            }
-
-            map $http_forwarded $proxy_add_forwarded {
-                # If the incoming Forwarded header is syntactically valid, append to it
-                "~^(,[ \\t]*)*([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?(;([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\x80-\\\xFF]|\\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?)*([ \\\t]*,([ \\\t]*([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?(;([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?)*)?)*$" "$http_forwarded, $proxy_forwarded_elem";
-
-                # Otherwise, replace it
-                default "$proxy_forwarded_elem";
-            }
-
-            include /config/sites/*.conf;
-        }
-    `
-    return justify(conf);
-}
-
-function justify(content: string, ws_per_tab=4, initial_ws=2) {
-    let split = content.split("\n");
-    if (split.length > 0 && split[0].length == 0) {
-        split = split.slice(1);
+                    `# Unix domain socket names cannot be represented in RFC 7239 syntax`,
+                    `default           "for=unknown";`,
+                ]
+            },
+            {
+                title: "map $http_forwarded $proxy_add_forwarded",
+                contents: [
+                    `# If the incoming Forwarded header is syntactically valid, append to it`,
+                    `"~^(,[ \\t]*)*([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?(;([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\x80-\\\xFF]|\\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?)*([ \\\t]*,([ \\\t]*([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?(;([!#$%&'*+.^_\`|~0-9A-Za-z-]+=([!#$%&'*+.^_\`|~0-9A-Za-z-]+|\\"([\\\t \\\x21\\\x23-\\\x5B\\\x5D-\\\x7E\\\x80-\\\xFF]|\\\\[\\\t \\\x21-\\\x7E\\\x80-\\\xFF])*\\"))?)*)?)*$" "$http_forwarded, $proxy_forwarded_elem";`,
+                    `# Otherwise, replace it`,
+                    `default "$proxy_forwarded_elem";`
+                ]
+            },
+            "include /config/sites/*.conf"
+        ]
     }
-    let justified_content = "";
-    for (const line of split) {
-        const whitespace = line.search(/\S|$/);
-        const tabs = (whitespace / ws_per_tab) - initial_ws > 0 ? (whitespace / ws_per_tab) - initial_ws : 0;
-        const prefix = "\t".repeat(tabs);
-        justified_content += prefix + line.trimStart() + "\n";
-    }
-    return justified_content;
+    return "worker_processes auto;\n" + 
+        "worker_rlimit_nofile 300000;\n\n" +
+        "include /etc/nginx/modules-enabled/*.conf;\n\n" +
+        "pcre_jit on;\n\n" +
+        "error_log /log/error.log warn;\n\n" +
+        ParseBlock(events, 0) +
+        ParseBlock(http, 0);
 }
