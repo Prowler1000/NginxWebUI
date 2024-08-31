@@ -109,7 +109,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             `set $forward_scheme ${data.forward_scheme.toLowerCase()}`,
             `set $server "${data.forward_server}"`,
             `set $port ${data.forward_port}`,
-            `error_log /log/${data.server.name}_error.log`,
+            `error_log /log/${data.server.name.replace(" ", "_")}_error.log`,
             {
                 title: "location /",
                 contents: [
