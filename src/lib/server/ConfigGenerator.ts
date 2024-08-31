@@ -182,7 +182,7 @@ export async function GenerateNginxConfig() {
         title: "events",
         contents: [
             "multi_accept on",
-            "worker_connection 65535"
+            "worker_connections 65535"
         ]
     };
     const http: Block = {
