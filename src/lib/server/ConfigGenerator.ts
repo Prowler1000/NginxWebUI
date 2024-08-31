@@ -96,13 +96,14 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             locations: true,
         }
     }) : null;
+    const default_server = data.server.hostname == "_" && data.server.name == "default" ? ' default_server' : ''
     return ParseBlock({
         title: "server",
         contents: [
             // If we want to use SSL, append a list of directives, otherwise append an empty list (nothing)
             ... data.server.use_ssl ? [
-                `listen ${data.server.ssl_port} quic`,
-                `listen ${data.server.ssl_port} ssl`
+                `listen ${data.server.ssl_port} quic${default_server}`,
+                `listen ${data.server.ssl_port} ssl${default_server}`
             ] : [],
             `server_name ${data.server.hostname}`,
             `include /config/nginx/ssl-default.conf`,
@@ -110,6 +111,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             `set $server "${data.forward_server}"`,
             `set $port ${data.forward_port}`,
             `error_log /log/${data.server.name.replace(" ", "_")}_error.log`,
+            '\n',
             {
                 title: "location /",
                 contents: [
