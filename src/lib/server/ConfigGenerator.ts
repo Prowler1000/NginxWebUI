@@ -116,13 +116,17 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
                 title: "location /",
                 contents: [
                     `proxy_pass $forward_scheme://$server:$port`,
+                    '\n',
                     ... auth !== null ? [
                         `auth_request ${auth.auth_request}`,
                         'add_header Set-Cookie $auth_cookie',
+                        '\n',
                         ...auth.auth_request_headers.map(header => `auth_request_set ${header}`),
+                        '\n',
                         ...auth.proxy_headers.map(header => `proxy_set_header ${header}`)
                     ]: [],
                     ... (await GenerateGeneralHeaders()),
+                    '\n',
                     ... (await GenerateProxyDeclarations())
                 ]
             },
