@@ -190,7 +190,7 @@ export async function GenerateNginxConfig() {
         contents: [
             "http2 on",
             "http3 on",
-            "carset utf-8",
+            "charset utf-8",
             "sendfile on",
             "tcp_nopush on;",
             "server_tokens off",
