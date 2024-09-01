@@ -26,14 +26,24 @@ interface Block {
     contents: (string | Block)[]
 }
 
+function ParseDirective(directive: string) {
+    const directive_content = directive.trim().replace('\n', '');
+    const semi_colon = directive_content.endsWith(';') 
+        || directive_content.length === 0 
+        || directive_content.startsWith('#') 
+        ? '' : ';';
+    const new_line = directive.endsWith('\n') ? '\n' : '';
+    return `${directive_content}${semi_colon}${new_line}`;
+}
+
 function ParseBlock(block: Block, whitespace=0) {
     const top_level_ws = Array.from({length: whitespace}, () => WHITESPACE_STRING).join("");
     const second_level_ws = top_level_ws + WHITESPACE_STRING;
     let parsedBlock = `${top_level_ws}${block.title} {\n`;
     for (const content of block.contents) {
         if (typeof content === "string") {
-
-            parsedBlock += `${second_level_ws}${content}${content.trim().endsWith(';') ? '' : ';'}\n`;
+            const directive = ParseDirective(content);
+            parsedBlock += `${second_level_ws}${directive}${directive.endsWith('\n') ? '' : '\n'}`;
         }
         else {
             parsedBlock += ParseBlock(content, whitespace+1);
@@ -115,15 +125,17 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
             {
                 title: "location /",
                 contents: [
-                    `proxy_pass $forward_scheme://$server:$port`,
-                    '\n',
+                    `proxy_pass $forward_scheme://$server:$port\n`,
                     ... auth !== null ? [
                         `auth_request ${auth.auth_request}`,
                         'add_header Set-Cookie $auth_cookie',
                         '\n',
+                        '# Auth request headers',
                         ...auth.auth_request_headers.map(header => `auth_request_set ${header}`),
                         '\n',
-                        ...auth.proxy_headers.map(header => `proxy_set_header ${header}`)
+                        '# Proxy Headers',
+                        ...auth.proxy_headers.map(header => `proxy_set_header ${header}`),
+                        '\n'
                     ]: [],
                     ... (await GenerateGeneralHeaders()),
                     '\n',
@@ -143,7 +155,6 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
 async function GenerateGeneralHeaders() {
     return [
         `add_header Strict-Transport-Security "max-age=63072000" always;`,
-        `add_header Strict-Transport-Security "max-age=63072000" always;`,
         `add_header X-XSS-Protection "1; mode=block" always;`,
         `#add_header X-Content-Type-Options "nosniff" always;`,
         `add_header Referrer-Policy "no-referrer-when-downgrade" always;`,
@@ -156,16 +167,16 @@ async function GenerateProxyDeclarations() {
     return [
         `proxy_http_version 1.1;`,
         `proxy_cache_bypass $http_upgrade;`,
-
+        '\n',
         `proxy_buffers 8 16k;`,
         `proxy_buffer_size 32k;`,
-
+        '\n',
         `proxy_ssl_server_name on;`,
         `proxy_ssl_name $host;`,
         `proxy_ssl_session_reuse off;`,
-
+        '\n',
         `proxy_ssl_protocols TLSv1.2 TLSv1.3;`,
-
+        '\n',
         `proxy_set_header Host $http_host;`,
         `proxy_set_header Upgrade $http_upgrade;`,
         `proxy_set_header Connection $connection_upgrade;`,
@@ -175,7 +186,7 @@ async function GenerateProxyDeclarations() {
         `proxy_set_header X-Forwarded-Proto $scheme;`,
         `proxy_set_header X-Forwarded-Host $host;`,
         `proxy_set_header X-Forwarded-Port $server_port;`,
-
+        '\n',
         `proxy_connect_timeout 60;`,
         `proxy_send_timeout 60;`,
         `proxy_read_timeout 60;`,
