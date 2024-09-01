@@ -3,6 +3,11 @@ import path from "path";
 import fs from "fs";
 import { GenerateNginxConfig, GenerateSiteConfigs } from "$lib/server/ConfigGenerator";
 import { ParseBoolean } from "$lib/server/parser";
+import { exec } from "child_process";
+import { ResponseHelper } from "$lib/server/RESTHelpers";
+import util from 'util';
+
+const asyncExec = util.promisify(exec);
 
 interface ConfVars {
     prefix: boolean,
@@ -38,5 +43,17 @@ export const POST: RequestHandler = async ({ request }) => {
         }
     })
 
-    return new Response();
+    const cmd = 's6-svc -r /var/run/s6/service/nginx'
+
+    try {
+        const { stdout, stderr } = await asyncExec(cmd);
+        return new ResponseHelper("Files deployed. Nginx restart command executed with the following output:\n" + `STDOUT::${stdout}\n\nSTDERR::${stderr}`)
+            .Status(200)
+            .Response;
+    }
+    catch (e) {
+        return new ResponseHelper("Files deployed. Nginx restart command failed with the following exception.\n" + e)
+            .Status(200)
+            .Response;
+    }
 }
