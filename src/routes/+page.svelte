@@ -4,6 +4,9 @@
         await fetch("/api/v1/Deploy", {
             method: 'POST',
         });
+        await fetch("/api/v1/Restart-Nginx", {
+            method: 'POST',
+        });
     }
 
 </script>
