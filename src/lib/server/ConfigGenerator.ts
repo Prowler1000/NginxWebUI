@@ -67,7 +67,8 @@ export async function GenerateSiteConfigs() {
     sites.push(default_server); // Ensure the default server is always generated
     const data: { [key: string]: string } = {};
     for (const site of sites) {
-        data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
+        if (site.server.enable)
+            data[site.server.name.trim().replace(" ", "_")] = await GenerateSiteConfig(site)
     }
     return data;
 }
