@@ -16,7 +16,7 @@
             <a href="/servers">Servers</a>
         </nav>
     </div>
-    <div class="content_ctr">
+    <div class="content-ctr">
         {#if children}
             {@render children()}
         {/if}
@@ -24,6 +24,15 @@
 </div>
 
 <style>
+    .page-ctr {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .content-ctr {
+        height: 100%;
+    }
     .nav-ctr {
         width: 100%;
         text-align: center;
@@ -37,10 +46,19 @@
         text-decoration: none;
         color: rgb(44, 35, 168)
     }
-    .page-ctr {
-    }
-
     :root {
         --select-color: #276cc7;
+        margin: 0;
+        padding: 0;
+    }
+    :global(body) {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+    :global(html) {
+        height: 100%;
+        margin: 0;
+        padding: 0;
     }
 </style>
