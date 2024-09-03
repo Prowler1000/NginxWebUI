@@ -14,6 +14,7 @@
             <a href="/">Home</a>
             <!--<a href="/auth">Auth</a>-->
             <a href="/servers">Servers</a>
+            <a href="/ssl">SSL</a>
         </nav>
     </div>
     <div class="content-ctr">

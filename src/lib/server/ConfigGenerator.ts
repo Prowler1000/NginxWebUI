@@ -1,7 +1,23 @@
-import type { ProxyServer, Server } from "@prisma/client";
+import type { ProxyServer, Server, SSLConfig } from "@prisma/client";
 import prisma from "./db";
 
-const default_server: ProxyServer & {server: Server} = {
+type proxyType = ProxyServer & {server: Server & {ssl_config: SSLConfig | null}};
+
+const default_ssl_config: SSLConfig  ={
+    id: 0,
+    name: "default",
+    cert_location: "/ssl/default/fullkey.pem",
+    cert_key_location: "/ssl/default/privkey.pem",
+    session_timeout: "1d",
+    session_cache: "shared:MozSSL:10m",
+    session_tickets: false,
+    protocols: ["TLSv1.3"],
+    prefer_server_ciphers: false,
+    stapling: false,
+    stapling_verify: false,
+}
+
+const default_server: proxyType = {
     id: 0,
     forward_scheme: "HTTP",
     forward_server: "127.0.0.1",
@@ -16,13 +32,15 @@ const default_server: ProxyServer & {server: Server} = {
         ssl_port: 443,
         use_ssl: true,
         authId: null,
+        sSLConfigId: null,
+        ssl_config: default_ssl_config,
     }
 }
 
 const WHITESPACE_STRING = "\t"
 
 interface Block {
-    title: string,
+    title?: string,
     contents: (string | Block)[]
 }
 
@@ -38,8 +56,11 @@ function ParseDirective(directive: string) {
 
 function ParseBlock(block: Block, whitespace=0) {
     const top_level_ws = Array.from({length: whitespace}, () => WHITESPACE_STRING).join("");
-    const second_level_ws = top_level_ws + WHITESPACE_STRING;
-    let parsedBlock = `${top_level_ws}${block.title} {\n`;
+    const second_level_ws = block.title !== undefined ? top_level_ws + WHITESPACE_STRING : top_level_ws;
+    let parsedBlock = '';
+    if (block.title !== undefined) {
+        parsedBlock += `${top_level_ws}${block.title} {\n`;
+    }
     for (const content of block.contents) {
         if (typeof content === "string") {
             const directive = ParseDirective(content);
@@ -49,19 +70,20 @@ function ParseBlock(block: Block, whitespace=0) {
             parsedBlock += ParseBlock(content, whitespace+1);
         }
     }
-    parsedBlock += `${top_level_ws}}\n\n`;
+    if (block.title !== undefined) {
+        parsedBlock += `${top_level_ws}}\n\n`;
+    }
     return parsedBlock;
 }
 
 export async function GenerateSiteConfigs() {
     const sites = await prisma.proxyServer.findMany({
-        select: {
-            id: true,
-            forward_scheme: true,
-            forward_server: true,
-            forward_port: true,
-            server: true,
-            serverId: true,
+        include: {
+            server: {
+                include: {
+                    ssl_config: true,
+                }
+            }
         }
     });
     sites.push(default_server); // Ensure the default server is always generated
@@ -73,32 +95,39 @@ export async function GenerateSiteConfigs() {
     return data;
 }
 
-async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {server: Server}) {
-    let data: ProxyServer & {server: Server};
-    if (typeof site === "number") {
-        data = await prisma.proxyServer.findFirst({
-            where: {
-                id: site
-            },
-            select: {
-                server: true,
-            },
-        })
+export async function GenerateSSLConfigs() {
+    const configs = await prisma.sSLConfig.findMany();
+    configs.push(default_ssl_config);
+    const data: { [key: string]: string} = {};
+    for (const conf of configs) {
+        data[conf.name.trim().replace(" ", "_")] = await GenerateSSLConfig(conf);
     }
-    // Check if a Server field exists in 'site'
-    else if (!("server" in site)) {
-        data = await prisma.proxyServer.findFirst({
-            where: {
-                id: site.id,
-            },
-            select: {
-                server: true,
-            },
-        })
-    }
-    else {
-        data = site as ProxyServer & {server: Server};
-    }
+    return data;
+}
+
+async function GenerateSSLConfig(config: SSLConfig) {
+    return ParseBlock({
+        contents: [
+            `ssl_certificate ${config.cert_location}`,
+            `ssl_certificate_key ${config.cert_key_location}`,
+            `ssl_session_timeout ${config.session_timeout}`,
+            `ssl_session_cache ${config.session_cache}`,
+            `ssl_session_tickets ${config.session_tickets ? 'on' : 'off'}`,
+            `\n`,
+            `ssl_protocols ${config.protocols.join(" ")}`,
+            `ssl_prefer_server_ciphers ${config.prefer_server_ciphers ? 'on' : 'off'}`,
+            `\n`,
+            `ssl_stapling ${config.stapling ? 'on' : 'off'}`,
+            `ssl_stapling_verify ${config.stapling_verify ? 'on' : 'off'}`,
+        ]
+    });
+}
+
+async function GetSSLConfLocation(config: SSLConfig | null) {
+    return `/config/nginx/ssl/${(config ?? default_ssl_config).name.trim().replace(" ", "_")}.conf`;
+}
+
+async function GenerateSiteConfig(data: proxyType) {
     const auth = data.server.authId !== null ? await prisma.auth.findFirst({
         where: {
             id: data.server.authId,
@@ -117,7 +146,7 @@ async function GenerateSiteConfig(site: number | ProxyServer | ProxyServer & {se
                 `listen ${data.server.ssl_port} ssl${default_server}`
             ] : [],
             `server_name ${data.server.hostname}`,
-            `include /config/nginx/ssl-default.conf`,
+            `include ${GetSSLConfLocation(data.server.ssl_config)}`,
             `set $forward_scheme ${data.forward_scheme.toLowerCase()}`,
             `set $server "${data.forward_server}"`,
             `set $port ${data.forward_port}`,

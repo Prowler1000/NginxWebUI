@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InteractableDiv from "$lib/accessibility/InteractableDiv.svelte";
-	import type { Auth, ProxyServer, Scheme, Server } from "@prisma/client";
+	import type { Auth, ProxyServer, Scheme, Server, SSLConfig } from "@prisma/client";
 	import { onMount } from "svelte";
 
     type Props = {
@@ -12,6 +12,7 @@
         ssl_port: number,
         use_ssl: boolean,
         authId: number | null,
+        ssl_config_id: number | null,
 
         scheme: "HTTP" | "HTTPS",
         forward_server: string,
@@ -19,6 +20,7 @@
 
         server_id: number,
         auths: Auth[],
+        SSLConfigs: SSLConfig[],
 
         save_callback?: () => void,
         delete_callback?:() => void,
@@ -31,12 +33,14 @@
         http_port = $bindable(),
         ssl_port = $bindable(),
         use_ssl = $bindable(),
+        ssl_config_id = $bindable(),
 
         scheme = $bindable(),
         forward_server = $bindable(),
         forward_port = $bindable(),
 
         auths,
+        SSLConfigs,
         authId = $bindable(),
 
         server_id = $bindable(),
@@ -62,6 +66,7 @@
             ssl_port: ssl_port,
             use_ssl: use_ssl,
             authId: authId,
+            sSLConfigId: ssl_config_id,
         }
         saved_proxy = {
             id: id,
@@ -112,6 +117,7 @@
             ssl_port: ssl_port,
             use_ssl: use_ssl,
             authId: authId,
+            sSLConfigId: ssl_config_id,
         }
     }
 
@@ -199,6 +205,19 @@
         checkCanSave();
     }
 
+    function onSSLSelectChange(e: Event & {
+        currentTarget: EventTarget & HTMLSelectElement;
+    }) {
+        const id = Number(e.currentTarget.value);
+        if (id === -1) {
+            ssl_config_id = null
+        }
+        else {
+            ssl_config_id = id;
+        }
+        checkCanSave();
+    }
+
     function toggleShowDetails() {
         showDetails = !showDetails;
     }
@@ -250,17 +269,32 @@
     </div>
     {#if showDetails}
         <div class="details-ctr">
-            <div class="auth-settings-ctr">
-                <div class="auth-settings-title">
-                    Auth Settings:
-                </div>
-                <div class="auth-settings-select">
-                    <select onchange={onAuthSelectChange}>
-                        <option value={-1} selected={authId === null}>Disabled</option>
-                        {#each auths as auth}
+            <div class="general-settings-ctr">
+                <div class="auth-settings-ctr settings-ctr">
+                    <div class="auth-settings-title">
+                        Auth Settings:
+                    </div>
+                    <div class="auth-settings-select">
+                        <select onchange={onAuthSelectChange}>
+                            <option value={-1} selected={authId === null}>Disabled</option>
+                            {#each auths as auth}
                             <option value={auth.id} selected={authId === auth.id}>{auth.name}</option>
-                        {/each}
-                    </select>
+                            {/each}
+                        </select>
+                    </div>
+                </div>
+                <div class="ssl-settings-ctr settings-ctr">
+                    <div class="ssl-settings-title">
+                        SSL Settings:
+                    </div>
+                    <div class="ssl-settings-select">
+                        <select onchange={onSSLSelectChange}>
+                            <option value={-1} selected={ssl_config_id === null}>Default</option>
+                            {#each SSLConfigs as config}
+                            <option value={config.id} selected={ssl_config_id === config.id}>{config.name}</option>
+                            {/each}
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="proxy-settings-ctr">
@@ -364,10 +398,24 @@
         display: none;
     }
 
-    .auth-settings-ctr {
-        margin: 0;
+    .general-settings-ctr {
         display: flex;
-        width: 100%;
+        justify-content: center;
+    }
+
+    .settings-ctr {
+        margin: 0 10px 10px 10px;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    .settings-ctr * {
+        margin: auto;
+    }
+
+    .auth-settings-ctr {
+        display: flex;
         justify-content: center;
         flex-direction: column;
     }

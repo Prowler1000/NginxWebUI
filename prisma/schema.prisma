@@ -11,17 +11,19 @@ datasource db {
 }
 
 model Server {
-  id        Int     @id @default(autoincrement())
-  enable    Boolean @default(true)
-  auth      Auth?   @relation(fields: [authId], references: [id])
-  name      String
-  hostname  String
-  http_port Int
-  ssl_port  Int
-  use_ssl   Boolean
+  id         Int        @id @default(autoincrement())
+  enable     Boolean    @default(true)
+  auth       Auth?      @relation(fields: [authId], references: [id])
+  name       String
+  hostname   String
+  http_port  Int
+  ssl_port   Int
+  use_ssl    Boolean
+  ssl_config SSLConfig? @relation(fields: [sSLConfigId], references: [id])
 
   ProxyServer ProxyServer[]
   authId      Int?
+  sSLConfigId Int?
 
   @@unique(name: "http_endpoint", [hostname, http_port])
   @@unique(name: "ssl_endpoint", [hostname, ssl_port])
@@ -35,6 +37,21 @@ model ProxyServer {
   forward_port   Int
 
   serverId Int
+}
+
+model SSLConfig {
+  id                    Int      @id @default(autoincrement())
+  name                  String   @default("Default")
+  cert_location         String   @default("/ssl/default/fullkey.pem")
+  cert_key_location     String   @default("/ssl/default/privkey.pem")
+  session_timeout       String   @default("1d")
+  session_cache         String   @default("shared:MozSSL:10m")
+  session_tickets       Boolean  @default(false)
+  protocols             String[] @default(["TLSv1.3"])
+  prefer_server_ciphers Boolean  @default(false)
+  stapling              Boolean  @default(false)
+  stapling_verify       Boolean  @default(false)
+  Server                Server[]
 }
 
 model Auth {
