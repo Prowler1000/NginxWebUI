@@ -146,7 +146,7 @@ async function GenerateSiteConfig(data: proxyType) {
                 `listen ${data.server.ssl_port} ssl${default_server}`
             ] : [],
             `server_name ${data.server.hostname}`,
-            `include ${GetSSLConfLocation(data.server.ssl_config)}`,
+            `include ${await GetSSLConfLocation(data.server.ssl_config)}`,
             `set $forward_scheme ${data.forward_scheme.toLowerCase()}`,
             `set $server "${data.forward_server}"`,
             `set $port ${data.forward_port}`,
