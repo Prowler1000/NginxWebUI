@@ -86,7 +86,8 @@
             saved_server.http_port === http_port &&
             saved_server.ssl_port === ssl_port &&
             saved_server.use_ssl === use_ssl &&
-            saved_server.authId === authId
+            saved_server.authId === authId &&
+            saved_server.sSLConfigId === ssl_config_id
         )
     }
     function proxy_has_changes(): boolean {
@@ -96,6 +97,7 @@
             saved_proxy.forward_port === forward_port
         )
     }
+
     function setCanSave() {
         canSave = server_has_changes() || proxy_has_changes();
     }
