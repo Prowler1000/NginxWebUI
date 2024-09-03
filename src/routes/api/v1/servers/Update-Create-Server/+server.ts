@@ -23,6 +23,8 @@ export const POST: RequestHandler = async ({ request }) => {
                 http_port: request_server.http_port,
                 ssl_port: request_server.ssl_port,
                 use_ssl: request_server.use_ssl,
+                authId: request_server.authId,
+                sSLConfigId: request_server.sSLConfigId,
             };
             const id = request_server.id;
             try {
