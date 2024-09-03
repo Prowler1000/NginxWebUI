@@ -6,7 +6,7 @@ const asyncExec = util.promisify(exec);
 
 export const POST = async ({ request }) => {
 
-    const cmd = 's6-svc -r /var/run/s6/service/nginx'
+    const cmd = 's6-svc -r /var/run/service/nginx'
 
     try {
         const { stdout, stderr } = await asyncExec(cmd);
