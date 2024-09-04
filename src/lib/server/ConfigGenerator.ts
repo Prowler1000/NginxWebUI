@@ -217,9 +217,9 @@ async function GenerateProxyDeclarations() {
         `proxy_set_header X-Forwarded-Host $host;`,
         `proxy_set_header X-Forwarded-Port $server_port;`,
         '\n',
-        `proxy_connect_timeout 60;`,
-        `proxy_send_timeout 60;`,
-        `proxy_read_timeout 60;`,
+        `proxy_connect_timeout 60s;`,
+        `proxy_send_timeout 60s;`,
+        `proxy_read_timeout 60s;`,
     ]
 }
 
