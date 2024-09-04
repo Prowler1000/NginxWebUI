@@ -147,9 +147,11 @@ async function GenerateSiteConfig(data: proxyType) {
             ] : [],
             `server_name ${data.server.hostname}`,
             `include ${await GetSSLConfLocation(data.server.ssl_config)}`,
+            '\n',
             `set $forward_scheme ${data.forward_scheme.toLowerCase()}`,
             `set $server "${data.forward_server}"`,
             `set $port ${data.forward_port}`,
+            '\n',
             `error_log /log/${data.server.name.replace(" ", "_")}_error.log`,
             '\n',
             {
@@ -253,7 +255,7 @@ export async function GenerateNginxConfig() {
             "include /config/nginx/resolvers.conf;",
             "\n",
             {
-                title: "map $http_update $connection_upgrade",
+                title: "map $http_upgrade $connection_upgrade",
                 contents: [
                     `default upgrade;`,
                     `""      close;`
