@@ -6,9 +6,13 @@ const HelperParams: RequestHelperParams = {
     expectedContentType: ContentType.JSON,
 }
 
+interface Parameters {
+    id?: number
+}
+
 export const POST: RequestHandler = async ({ request }) => {
     const helper = new RequestHelper(HelperParams, request);
-    const json = await helper.GetJson();
+    const json: Parameters = await helper.GetJson();
     if (helper.OK) {
         const id = json["id"];
         if (id === undefined) {

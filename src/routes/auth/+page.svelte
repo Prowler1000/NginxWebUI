@@ -71,10 +71,6 @@
 </div>
 
 <style>
-.auths-ctr {
-
-}
-
 .auth-ctr {
     display: flex;
 }

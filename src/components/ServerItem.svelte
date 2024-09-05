@@ -322,30 +322,6 @@
                 </div>
                 
             </div>
-<!--        RE-ADD LATER
-            <div class="headers-ctr">
-                <div class="header-item">
-                    <label for="ref-policy-input">Referrer Policy:</label> 
-                    <div class="input-ctr"><input id="ref-policy-input" type="text" bind:value={ref_policy} oninput={onfieldinput}/></div>
-                </div>
-                <div class="header-item">
-                    <label for="csp-input">Content Security Policy:</label> 
-                    <div class="input-ctr"><input id="csp-input" type="text" bind:value={content_security_policy} oninput={onfieldinput}/></div>
-                </div>
-                <div class="header-item">
-                    <label for="sts-input">Strict Transport Security:</label> 
-                    <div class="input-ctr"><input id="sts-input" type="text" bind:value={strict_transport_security} oninput={onfieldinput}/></div>
-                </div>
-                <div class="header-item">
-                    <label for="perm-policy-input">Permissions Policy:</label> 
-                    <div class="input-ctr"><input id="perm-policy-input" type="text" bind:value={permissions_policy} oninput={onfieldinput}/></div>
-                </div>
-                <div class="header-item">
-                    <label for="xss-policy-input">XSS Protection:</label> 
-                    <div class="input-ctr"><input id="xss-policy-input" type="text" bind:value={xss_protection} oninput={onfieldinput}/></div>
-                </div>
-            </div>
--->
         </div>
     {/if}
 </div>
@@ -392,9 +368,6 @@
     .delete-ctr {
         width: 10%;
         display: flex;
-    }
-    :global(.delete-btn) {
-
     }
     :global(.invisible) {
         display: none;
@@ -446,30 +419,6 @@
     .proxy-setting label {
         width: 50%;
         text-align: right;
-    }
-    .headers-ctr {
-        margin: 0;
-        display: flex;
-        width: 100%;
-        justify-content: center;
-        flex-direction: column;
-    }
-    .header-item {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        margin: 5px 25%;
-    }
-    .header-item label {
-        width: 25%;
-        text-align: left;
-    }
-    .header-item .input-ctr {
-        width: 25%;
-        text-align: right;
-        display: flex;
-        flex-direction: column;
-        margin-right: 10px;
     }
 
     @keyframes rotate90 {
