@@ -1,10 +1,10 @@
 import prisma from "$lib/server/db";
-import { ContentType, RequestHelper } from "$lib/server/RESTHelpers";
+import { RequestHelper } from "$lib/server/RESTHelpers";
 import type { SSLConfig } from "@prisma/client";
 import type { RequestHandler } from "@sveltejs/kit";
 
 export const POST: RequestHandler = async ({ request }) => {
-    const helper = new RequestHelper({expectedContentType: ContentType.JSON}, request);
+    const helper = new RequestHelper(request);
     const json = await helper.GetJson();
     if (helper.OK) {
         if ('id' in json) {

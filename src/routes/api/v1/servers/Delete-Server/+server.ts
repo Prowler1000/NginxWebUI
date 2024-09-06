@@ -1,17 +1,13 @@
 import prisma from "$lib/server/db";
-import { ContentType, RequestHelper, type RequestHelperParams } from "$lib/server/RESTHelpers";
+import { RequestHelper } from "$lib/server/RESTHelpers";
 import type { RequestHandler } from "@sveltejs/kit";
-
-const HelperParams: RequestHelperParams = {
-    expectedContentType: ContentType.JSON,
-}
 
 interface Parameters {
     id?: number
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-    const helper = new RequestHelper(HelperParams, request);
+    const helper = new RequestHelper(request);
     const json: Parameters = await helper.GetJson();
     if (helper.OK) {
         const id = json["id"];

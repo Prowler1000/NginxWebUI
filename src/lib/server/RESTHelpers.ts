@@ -15,27 +15,20 @@ export enum Status {
     INTERNAL_SERVER_ERROR = 500,
 }
 
-export interface RequestHelperParams {
-    expectedContentType: ContentType,
-}
-
 export class RequestHelper implements Disposable {
-    private expectedContentType: ContentType;
     private responseHelper: ResponseHelper;
     private request: Request;
     private ok: boolean; // False if an error has occured somewhere.
 
     private content: object = {};
 
-    public constructor(params: RequestHelperParams, request: Request) {
-        this.expectedContentType = params.expectedContentType;
+    public constructor(request: Request) {
         this.responseHelper = new ResponseHelper();
         this.request = request;
         this.ok = true;
     }
 
     public async GetJson(): Promise<object> {
-        assert(this.expectedContentType === ContentType.JSON);
         if (this.ContentType !== ContentType.JSON) {
             this.ok = false;
             
