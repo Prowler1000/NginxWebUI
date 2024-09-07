@@ -34,6 +34,14 @@ export function ParseInt(int_like: string | number | undefined): number | undefi
     : undefined
 }
 
+export function ParseNum(num_like: string): number
+export function ParseNum(num_like: string | undefined): number | undefined
+export function ParseNum(num_like: string | undefined): number | undefined {
+    return num_like !== undefined
+        ? Number(num_like)
+        : undefined
+}
+
 export function ParseNumArray(array_like: string): number[]
 export function ParseNumArray(array_like: string | undefined): number[] | undefined {
     const array = array_like ? [] as number[] : undefined;

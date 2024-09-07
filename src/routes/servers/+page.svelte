@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ServerItem from "../../components/ServerItem.svelte";
 	import { onMount } from "svelte";
+	import ServerItem from "../../components/ServerItem.svelte";
 
     enum Scheme {
         HTTP = "HTTP",

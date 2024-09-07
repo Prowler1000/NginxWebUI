@@ -1,24 +1,63 @@
 import { type Auth, type ProxyServer, type Server, type SSLConfig } from "@prisma/client"
 
 export async function GetAllServers(fetchFunc = fetch): Promise<Server[]> {
-    const res = await fetchFunc("api/v1/servers/Get-Servers");
+    const res = await fetchFunc("api/v1/servers/Get");
     const json = await res.json();
-    const serverArray: Server[] = json.map((server: Server) => {
-        return {
-            id: server.id,
-            enable: server.enable,
-            name: server.name,
-            hostname: server.hostname,
-            http_port: server.http_port,
-            ssl_port: server.ssl_port,
-            use_ssl: server.use_ssl
+    return json as Server[];
+}
+
+export async function CreateServer(server: Server, fetchFunc = fetch): Promise<Server | null> {
+    try {
+        const res = await fetchFunc("/api/v1/servers/Create", {
+            method: 'POST',
+            body: JSON.stringify(server),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.status === 200) {
+            return await res.json() as Server
         }
-    });
-    return serverArray;
+    }
+    catch (e) {
+        console.error(e)
+    }
+    return null;
+}
+
+export async function UpdateServer(server: Server, fetchFunc = fetch): Promise<Server | null> {
+    try {
+        const res = await fetchFunc("/api/v1/servers/Update", {
+            method: 'PATCH',
+            body: JSON.stringify(server),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.status === 200) {
+            return await res.json() as Server
+        }
+    }
+    catch (e) {
+        console.error(e)
+    }
+    return null;
+}
+
+export async function DeleteServer(id: number, fetchFunc = fetch): Promise<boolean> {
+    return (await fetchFunc("/api/v1/servers/Delete", {
+        method: 'DELETE',
+        body: JSON.stringify({
+            id: id,
+        }),
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })).status === 200;
 }
 
 export async function GetAllProxyServers(fetchFunc = fetch): Promise<(Server & ProxyServer)[]> {
-    const res = await fetchFunc('/api/v1/servers/Get-Proxies?includeServer=true');
+    const res = await fetchFunc('/api/v1/proxy/Get?include_server=true');
     if (res.status != 200) {
         console.error(`An error occured during fetch. ${await res.text()}`)
         return []
@@ -44,6 +83,56 @@ export async function GetAllProxyServers(fetchFunc = fetch): Promise<(Server & P
         })
         return array;
     }
+}
+
+export async function CreateProxyServer(server: ProxyServer, fetchFunc = fetch): Promise<ProxyServer | null> {
+    try {
+        const res = await fetchFunc("/api/v1/proxy/Create", {
+            method: 'POST',
+            body: JSON.stringify(server),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.status === 200) {
+            return await res.json() as ProxyServer
+        }
+    }
+    catch (e) {
+        console.error(e)
+    }
+    return null;
+}
+
+export async function UpdateProxyServer(server: ProxyServer, fetchFunc = fetch): Promise<ProxyServer | null> {
+    try {
+        const res = await fetchFunc("/api/v1/servers/Update", {
+            method: 'PATCH',
+            body: JSON.stringify(server),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.status === 200) {
+            return await res.json() as ProxyServer
+        }
+    }
+    catch (e) {
+        console.error(e)
+    }
+    return null;
+}
+
+export async function DeleteProxyServer(id: number, fetchFunc = fetch): Promise<boolean> {
+    return (await fetchFunc("/api/v1/proxy/Delete", {
+        method: 'DELETE',
+        body: JSON.stringify({
+            id: id,
+        }),
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })).status === 200;
 }
 
 export async function GetAllAuthConfigs(fetchFunc = fetch): Promise<(Auth & {locations: Location[]})[]> {

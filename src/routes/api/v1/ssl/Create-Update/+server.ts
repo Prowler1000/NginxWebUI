@@ -5,7 +5,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 
 export const POST: RequestHandler = async ({ request }) => {
     const helper = new RequestHelper(request);
-    const json = await helper.GetJson();
+    const json: {id: number} = await helper.GetJson();
     if (helper.OK) {
         if ('id' in json) {
             try {

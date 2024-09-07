@@ -1,6 +1,7 @@
 <script lang="ts">
 	import InteractableDiv from "$lib/accessibility/InteractableDiv.svelte";
-	import type { Auth, ProxyServer, Scheme, Server, SSLConfig } from "@prisma/client";
+	import { CreateProxyServer, CreateServer, DeleteProxyServer, DeleteServer, UpdateProxyServer, UpdateServer } from "$lib/api";
+	import type { Auth, ProxyServer, Server, SSLConfig } from "@prisma/client";
 	import { onMount } from "svelte";
 
     type Props = {
@@ -136,32 +137,33 @@
     async function save() {
         if (server_has_changes()) {
             const serverObj = create_server_object();
-            const res = await fetch("/api/v1/servers/Update-Create-Server", {
-                method: 'POST',
-                body: JSON.stringify(serverObj),
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            if (res.ok) {
-                const newServerObj = (await res.json()) as Server;
-                server_id = newServerObj.id;
-                saved_server = newServerObj;
+            let new_server: Server | null;
+            if (server_id === 0) {
+                new_server = await CreateServer(serverObj);
+            }
+            else {
+                new_server = await UpdateServer(serverObj);
+            }
+            if (new_server !== null) {
+                server_id = new_server.id;
+                saved_server = new_server;
             }
         }
         if (proxy_has_changes()) {
             const proxyObj = create_proxy_server_object();
-            const res = await fetch("/api/v1/servers/Update-Create-Proxy", {
-                method: 'POST',
-                body: JSON.stringify(proxyObj),
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            if (res.ok) {
-                const newProxyObj = (await res.json()) as ProxyServer;
-                id = newProxyObj.id;
-                saved_proxy = newProxyObj;
+            let new_server: ProxyServer | null;
+            if (id === 0) {
+                new_server = await CreateProxyServer(proxyObj);
+            }
+            else {
+                new_server = await UpdateProxyServer(proxyObj);
+            }
+            if (new_server !== null) {
+                id = new_server.id;
+                saved_proxy = new_server;
+            }
+            else if (id === 0) {
+                await DeleteServer(server_id);
             }
         }
         setCanSave();
@@ -172,22 +174,10 @@
         if (!confirm_delete) {
             return // Don't continue if the confirmation elements aren't visible
         }
-        const res = await fetch("/api/v1/servers/Delete-Proxy", {
-            method: 'POST',
-            body: JSON.stringify({id: id}),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        if (res.ok) {
-            const res2 = await fetch("/api/v1/servers/Delete-Server", {
-                method: 'POST',
-                body: JSON.stringify({id: server_id}),
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            if (res2.ok) {
+        const deleted_proxy = await DeleteProxyServer(id);
+        if (deleted_proxy) {
+            const deleted_server = await DeleteServer(server_id);
+            if (deleted_server) {
                 confirm_delete = false;
                 if (delete_callback) delete_callback();
             }

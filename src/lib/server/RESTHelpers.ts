@@ -15,20 +15,21 @@ export enum Status {
     INTERNAL_SERVER_ERROR = 500,
 }
 
-export class RequestHelper implements Disposable {
+export class RequestHelper {
     private responseHelper: ResponseHelper;
-    private request: Request;
+    private request: Request | undefined;
     private ok: boolean; // False if an error has occured somewhere.
 
     private content: object = {};
 
-    public constructor(request: Request) {
+    public constructor(request?: Request) {
         this.responseHelper = new ResponseHelper();
         this.request = request;
         this.ok = true;
     }
 
-    public async GetJson(): Promise<object> {
+    public async GetJson<T = unknown>(): Promise<T> {
+        assert(this.request !== undefined)
         if (this.ContentType !== ContentType.JSON) {
             this.ok = false;
             
@@ -49,7 +50,7 @@ export class RequestHelper implements Disposable {
                 .Status(Status.BAD_REQUEST)
             }
         }
-        return this.content;
+        return this.content as T;
     }
 
     get ResponseJSON(): object {
@@ -91,9 +92,12 @@ export class RequestHelper implements Disposable {
     }
 
     get ContentType(): ContentType | undefined {
-        const type = this.request.headers.get("Content-Type");
-        assert(type !== null);
-        return Object.values(ContentType).find(x => x === type);
+        if (this.request !== undefined){
+            const type = this.request.headers.get("Content-Type");
+            assert(type !== null);
+            return Object.values(ContentType).find(x => x === type);
+        }
+        return undefined;
     }
 
     get OK(): boolean {
@@ -102,11 +106,6 @@ export class RequestHelper implements Disposable {
 
     get Response(): Response {
         return this.responseHelper.Response;
-    }
-
-    [Symbol.dispose]() {
-        // We don't currently do anything but we might, so it's probably best
-        // to ensure implementations are done accordingly
     }
 }
 
@@ -141,7 +140,7 @@ export class ResponseHelper {
     public toInit(): ResponseInit {
         return {
             status: this.toStatus(),
-            headers: this.toHeaders(),
+            headers: this.toHeaders()
         }
     }
 

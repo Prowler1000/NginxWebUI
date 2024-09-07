@@ -1,7 +1,6 @@
 import prisma from "$lib/server/db";
-import { ParseBoolean, ParseEnum, ParseInt, ParseNumArrayQuery, ParseSearchParams } from "$lib/server/parser";
-import { ContentType, RequestHelper, ResponseHelper, Status, type RequestHelperParams } from "$lib/server/RESTHelpers";
-import { Scheme } from "@prisma/client";
+import { ParseBoolean, ParseNumArrayQuery, ParseSearchParams } from "$lib/server/parser";
+import { ContentType, ResponseHelper, Status } from "$lib/server/RESTHelpers";
 import type { RequestHandler } from "@sveltejs/kit";
 
 /*  Parameters:             Type:           Default:
@@ -15,7 +14,6 @@ export const GET: RequestHandler = async ({ url }): Promise<Response> => {
     const params = ParseSearchParams(url.search);
     const ids = ParseNumArrayQuery(params["id"]);
     const auth_request = params["auth-request"];
-    const auth_request_exact = ParseBoolean(params["auth-request-exact"] ?? true); // Currently does nothing, whoops
     const include_locations = ParseBoolean(params["includeLocations"] ?? false);
 
     try {
