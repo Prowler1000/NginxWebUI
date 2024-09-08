@@ -60,6 +60,7 @@ model Auth {
   auth_request         String   @default("")
   auth_request_headers String[] @default([])
   proxy_headers        String[] @default([])
+  directives           String[] @default([])
 
   locations Location[]
 

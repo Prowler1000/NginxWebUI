@@ -162,6 +162,9 @@ async function GenerateSiteConfig(data: proxyType) {
                         `auth_request ${auth.auth_request}`,
                         'add_header Set-Cookie $auth_cookie',
                         '\n',
+                        '# Generic Directives',
+                        ...auth.directives.map(directive => ParseDirective(directive)),
+                        '\n',
                         '# Auth request headers',
                         ...auth.auth_request_headers.map(header => `auth_request_set ${header}`),
                         '\n',
@@ -195,6 +198,7 @@ async function GenerateGeneralHeaders() {
         `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;`,
     ]
 }
+
 async function GenerateProxyDeclarations() {
     return [
         `proxy_http_version 1.1;`,
