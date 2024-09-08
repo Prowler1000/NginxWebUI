@@ -53,7 +53,7 @@
     let saved_proxy: ProxyServer;
 
     let canSave = $state(false);
-    let showDetails = $state(true);
+    let showDetails = $state(false);
     let can_delete = $derived(id !== 0);
     let confirm_delete = $state(false);
 
