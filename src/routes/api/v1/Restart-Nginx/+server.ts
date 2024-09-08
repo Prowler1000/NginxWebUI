@@ -10,7 +10,6 @@ export const POST = async ({ request }) => {
 
     try {
         const { stdout, stderr } = await asyncExec(cmd);
-        await new Promise(resolve => setTimeout(resolve, 5000));
         return new ResponseHelper("Nginx restart command executed with the following output:\n" + `STDOUT::${stdout}\n\nSTDERR::${stderr}`)
             .Status(200)
             .Response;

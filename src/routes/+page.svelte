@@ -14,10 +14,30 @@
             method: 'POST',
         });
         deploy_file_color = deploy_res.status === 200 ? green : red;
-        const restart_res = await fetch("/api/v1/Restart-Nginx", {
+        fetch("/api/v1/Restart-Nginx", {
             method: 'POST',
         });
-        nginx_restart_color = restart_res.status === 200 ? green : red;
+        let up = await new Promise<boolean>(resolve => {
+            let iterations = 0;
+            const interval = setInterval(async () => {
+                iterations++;
+                const res = await fetch("/api/v1/Nginx-Status");
+                if (res.status !== 200) {
+                    clearInterval(interval);
+                    resolve(false);
+                }
+                else {
+                    const {up} = await res.json();
+                    if (up) {
+                        resolve(up)
+                    }
+                    else if (iterations >= 5) {
+                        resolve(false);
+                    }
+                }
+            }, 500);
+        })
+        nginx_restart_color = up ? green : red;
     }
 
 </script>
