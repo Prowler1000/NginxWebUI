@@ -319,7 +319,7 @@
 <style>
     .primary-ctr {
         display: flex;
-        width: 100%;
+        width: calc(100%, -10px);
         margin: 10px;
         justify-content: center;
     }
