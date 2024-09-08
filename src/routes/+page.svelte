@@ -29,9 +29,11 @@
                 else {
                     const {up} = await res.json();
                     if (up) {
+                        clearInterval(interval);
                         resolve(up)
                     }
                     else if (iterations >= 5) {
+                        clearInterval(interval);
                         resolve(false);
                     }
                 }
