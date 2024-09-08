@@ -22,6 +22,7 @@
         server_id: number,
         auths: Auth[],
         SSLConfigs: SSLConfig[],
+        default_show_details?: boolean,
 
         save_callback?: () => void,
         delete_callback?:() => void,
@@ -43,6 +44,7 @@
         auths,
         SSLConfigs,
         authId = $bindable(),
+        default_show_details = false,
 
         server_id = $bindable(),
         save_callback,
@@ -53,7 +55,7 @@
     let saved_proxy: ProxyServer;
 
     let canSave = $state(false);
-    let showDetails = $state(false);
+    let showDetails = $state(default_show_details);
     let can_delete = $derived(id !== 0);
     let confirm_delete = $state(false);
 
@@ -221,9 +223,11 @@
 
 <div class="ctr">
     <div class="primary-ctr">
+        <!--
         <div class="id">
             {id}
         </div>
+        -->
         <div class="name">
             <input id="name" type="text" bind:value={name} oninput={() => checkCanSave()}/>
         </div>

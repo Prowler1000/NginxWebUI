@@ -79,6 +79,20 @@
 </script>
 
 <div class="server-ctr">
+    <div class="header">
+        <div>
+            Name
+        </div>
+        <div>
+            Hostname
+        </div>
+        <div style="width: 5%;">
+            HTTP Port
+        </div>
+        <div style="width: 5%; margin-right: 13%;">
+            SSL Port
+        </div>
+    </div>
     {#each servers as server}
         <ServerItem
             bind:id={server.id}
@@ -99,6 +113,7 @@
 
             save_callback={on_save}
             delete_callback={() => on_delete(server.id)}
+            default_show_details={server.id === 0}
         />
     {/each}
     <div class="btn-ctr">        
@@ -110,6 +125,16 @@
     .server-ctr {
         display: flex;
         flex-direction: column;
+    }
+    .header {
+        display: flex;
+        width: calc(100%, -10px);
+        margin: 10px;
+        justify-content: center;
+    }
+    .header * {
+        width: 10%;
+        text-align: center;
     }
     .btn-ctr {
         display: flex;
