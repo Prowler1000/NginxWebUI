@@ -17,9 +17,6 @@
         const restart_res = await fetch("/api/v1/Restart-Nginx", {
             method: 'POST',
         });
-        console.log("Returned from restart command.");
-        console.log(restart_res)
-        console.log(await restart_res.text())
         nginx_restart_color = restart_res.status === 200 ? green : red;
     }
 
