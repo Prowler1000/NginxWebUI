@@ -325,5 +325,5 @@ export async function GenerateNginxConfig() {
         "error_log /log/error.log warn;\n\n" +
         ParseBlock(events, 0) +
         ParseBlock(http, 0) +
-        "include /config/nginx/stream.conf";
+        "include /config/nginx/stream.conf;";
 }
