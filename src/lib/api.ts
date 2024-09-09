@@ -1,4 +1,4 @@
-import { type Auth, type ProxyServer, type Server, type SSLConfig } from "@prisma/client"
+import { type Auth, type ProxyServer, type Server, type SSLConfig, type Stream } from "@prisma/client"
 
 export async function GetAllServers(fetchFunc = fetch): Promise<Server[]> {
     const res = await fetchFunc("api/v1/servers/Get");
@@ -213,4 +213,61 @@ export async function DeleteSSLConfig(id: number, fetchFunc = fetch) {
             'Content-Type': 'application/json',
         }
     });
+}
+
+export async function GetAllStreams(fetchFunc = fetch): Promise<Stream[]> {
+    const res = await fetchFunc('/api/v1/stream', {
+        method: 'GET',
+    });
+    if (res.ok) {
+        return await res.json() as Stream[];
+    }
+    return [];
+}
+
+export async function CreateStream(stream: Stream, fetchFunc = fetch): Promise<Stream | null> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {id, ...data} = stream;
+    const res = await fetchFunc('/api/v1/stream', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (res.ok) {
+        return await res.json() as Stream
+    }
+    console.error(await res.text())
+    return null;
+}
+
+export async function UpdateStream(stream: Stream, fetchFunc = fetch): Promise<Stream | null> {
+    const res = await fetchFunc('/api/v1/stream', {
+        method: 'PUT',
+        body: JSON.stringify({
+            id: stream.id,
+            data: stream,
+        }),
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (res.ok) {
+        return await res.json() as Stream;
+    }
+    return null;
+}
+
+export async function DeleteStream(id: number, fetchFunc = fetch) {
+    const res = await fetchFunc('/api/v1/stream', {
+        method: 'DELETE',
+        body: JSON.stringify({id: id}),
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!res.ok) {
+        console.error(await res.text());
+    }
 }

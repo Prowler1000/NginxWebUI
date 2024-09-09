@@ -77,6 +77,14 @@ model Location {
   Auth Auth[]
 }
 
+model Stream {
+  id             Int    @id @default(autoincrement())
+  name           String @default("")
+  incomming_port Int    @default(0)
+  upstream_host  String @default("")
+  upstream_port  Int    @default(0)
+}
+
 enum Scheme {
   HTTP
   HTTPS

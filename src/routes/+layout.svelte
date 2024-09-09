@@ -15,6 +15,7 @@
             <!--<a href="/auth">Auth</a>-->
             <a href="/servers">Servers</a>
             <a href="/ssl">SSL</a>
+            <a href="/stream">Stream</a>
         </nav>
     </div>
     <div class="content-ctr">
@@ -61,5 +62,9 @@
         height: 100%;
         margin: 0;
         padding: 0;
+    }
+    
+    :global(.grayed-out)  {
+        filter: contrast(0);
     }
 </style>
