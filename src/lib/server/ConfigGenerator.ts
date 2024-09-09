@@ -316,7 +316,6 @@ export async function GenerateNginxConfig() {
                 ]
             },
             "include /config/sites/*.conf",
-            "include /config/nginx/stream.conf",
         ]
     }
     return "worker_processes auto;\n" + 
@@ -325,5 +324,6 @@ export async function GenerateNginxConfig() {
         "pcre_jit on;\n\n" +
         "error_log /log/error.log warn;\n\n" +
         ParseBlock(events, 0) +
-        ParseBlock(http, 0);
+        ParseBlock(http, 0) +
+        "include /config/nginx/stream.conf";
 }
