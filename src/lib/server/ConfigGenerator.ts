@@ -1,4 +1,4 @@
-import type { ProxyServer, Server, SSLConfig } from "@prisma/client";
+import type { ProxyServer, Server, SSLConfig, Stream } from "@prisma/client";
 import prisma from "./db";
 
 type proxyType = ProxyServer & {server: Server & {ssl_config: SSLConfig | null}};
@@ -187,6 +187,34 @@ async function GenerateSiteConfig(data: proxyType) {
     });
 }
 
+export async function GenerateStreamConfigs(): Promise<string> {
+    const streams = await prisma.stream.findMany();
+    const map = streams.flatMap(async stream => [
+        `# ${stream.name}`,
+        await GenerateStreamConfig(stream),
+        '\n',
+    ]);
+    const stream_map = (await Promise.all(map)).flat();
+    return ParseBlock({
+        title: "stream",
+        contents: [
+            ...stream_map
+        ]
+    })
+}
+
+async function GenerateStreamConfig(stream: Stream): Promise<Block> {
+    return {
+        title: "server",
+        contents: [
+            `listen ${stream.incomming_port}`,
+            "proxy_connect_timeout 60s",
+            "proxy_socket_keepalive on",
+            `proxy_pass ${stream.upstream_host}:${stream.upstream_port}`,
+        ]
+    };
+}
+
 async function GenerateGeneralHeaders() {
     return [
         `add_header Strict-Transport-Security "max-age=63072000" always;`,
@@ -287,7 +315,8 @@ export async function GenerateNginxConfig() {
                     `default "$proxy_forwarded_elem";`
                 ]
             },
-            "include /config/sites/*.conf"
+            "include /config/sites/*.conf",
+            "include /config/nginx/stream.conf",
         ]
     }
     return "worker_processes auto;\n" + 

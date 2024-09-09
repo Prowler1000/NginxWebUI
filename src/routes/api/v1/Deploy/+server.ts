@@ -1,7 +1,7 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import path from "path";
 import fs from "fs";
-import { GenerateNginxConfig, GenerateSiteConfigs, GenerateSSLConfigs } from "$lib/server/ConfigGenerator";
+import { GenerateNginxConfig, GenerateSiteConfigs, GenerateSSLConfigs, GenerateStreamConfigs } from "$lib/server/ConfigGenerator";
 import { ParseBoolean } from "$lib/server/parser";
 import { ResponseHelper } from "$lib/server/RESTHelpers";
 
@@ -50,6 +50,9 @@ export const POST: RequestHandler = async ({ request }) => {
             fs.writeFile(filepath, configs[file_name], {}, () => {});
         }
     })
+
+    const stream_config = await GenerateStreamConfigs();
+    fs.writeFile("/config/nginx/stream.conf", stream_config, {}, () => {});
 
     return new ResponseHelper("Files deployed.")
         .Status(200)
