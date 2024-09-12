@@ -22,6 +22,7 @@
         server_id: number,
         auths: Auth[],
         SSLConfigs: SSLConfig[],
+        worker_access: boolean,
         default_show_details?: boolean,
 
         save_callback?: () => void,
@@ -45,6 +46,7 @@
         SSLConfigs,
         authId = $bindable(),
         default_show_details = false,
+        worker_access = $bindable(),
 
         server_id = $bindable(),
         save_callback,
@@ -70,6 +72,7 @@
             use_ssl: use_ssl,
             authId: authId,
             sSLConfigId: ssl_config_id,
+            worker_access: worker_access,
         }
         saved_proxy = {
             id: id,
@@ -90,7 +93,8 @@
             saved_server.ssl_port === ssl_port &&
             saved_server.use_ssl === use_ssl &&
             saved_server.authId === authId &&
-            saved_server.sSLConfigId === ssl_config_id
+            saved_server.sSLConfigId === ssl_config_id &&
+            saved_server.worker_access === worker_access
         )
     }
     function proxy_has_changes(): boolean {
@@ -123,6 +127,7 @@
             use_ssl: use_ssl,
             authId: authId,
             sSLConfigId: ssl_config_id,
+            worker_access: worker_access,
         }
     }
 
@@ -290,6 +295,14 @@
                             <option value={config.id} selected={ssl_config_id === config.id}>{config.name}</option>
                             {/each}
                         </select>
+                    </div>
+                </div>
+                <div class="worker-access-ctr settings-ctr">
+                    <div class="worker-access-title">
+                        Web Worker Access:
+                    </div>
+                    <div class="worker-access-setting">
+                        <input type="checkbox" bind:checked={worker_access} onchange={() => checkCanSave()}/>
                     </div>
                 </div>
             </div>

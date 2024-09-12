@@ -79,6 +79,7 @@ export async function GetAllProxyServers(fetchFunc = fetch): Promise<(Server & P
                 serverId: proxy.serverId,
                 authId: proxy.server.authId,
                 sSLConfigId: proxy.server.sSLConfigId,
+                worker_access: proxy.server.worker_access,
             }
         })
         return array;

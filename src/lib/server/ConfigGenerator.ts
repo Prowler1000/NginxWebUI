@@ -174,7 +174,12 @@ async function GenerateSiteConfig(data: proxyType) {
                     ]: [],
                     ... (await GenerateGeneralHeaders()),
                     '\n',
-                    ... (await GenerateProxyDeclarations())
+                    ... (await GenerateProxyDeclarations()),
+                    '\n',
+                    ... data.server.worker_access ? [
+                        'add_header "Cross-Origin-Opener-Policy" same-origin',
+                        'add_header "Cross-Origin-Embedder-Policy" require-corp',
+                    ] : []
                 ]
             },
             ... auth !== null ? auth.locations.map((loc) => {

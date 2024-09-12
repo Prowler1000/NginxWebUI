@@ -20,6 +20,7 @@ model Server {
   ssl_port   Int
   use_ssl    Boolean
   ssl_config SSLConfig? @relation(fields: [sSLConfigId], references: [id])
+  worker_access Boolean @default(false)
 
   ProxyServer ProxyServer[]
   authId      Int?

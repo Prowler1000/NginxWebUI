@@ -108,6 +108,7 @@
             bind:server_id={server.serverId}
             bind:authId={server.authId}
             bind:ssl_config_id={server.sSLConfigId}
+            bind:worker_access={server.worker_access}
             auths={data.auths}
             SSLConfigs={data.ssl_configs}
 
