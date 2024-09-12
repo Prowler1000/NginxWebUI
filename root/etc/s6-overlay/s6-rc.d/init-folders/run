@@ -1,0 +1,4 @@
+#!/bin/ash
+mkdir -p \
+    /ssl/default \
+    /log

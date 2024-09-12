@@ -1,0 +1,4 @@
+#!/command/with-contenv sh
+cd /webui
+npx prisma migrate deploy
+npm run prisma:generate
