@@ -107,7 +107,7 @@ export async function CreateProxyServer(server: ProxyServer, fetchFunc = fetch):
 
 export async function UpdateProxyServer(server: ProxyServer, fetchFunc = fetch): Promise<ProxyServer | null> {
     try {
-        const res = await fetchFunc("/api/v1/servers/Update", {
+        const res = await fetchFunc("/api/v1/proxy/Update", {
             method: 'PATCH',
             body: JSON.stringify(server),
             headers: {
