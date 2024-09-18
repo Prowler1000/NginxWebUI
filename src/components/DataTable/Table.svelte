@@ -30,36 +30,18 @@
         })
     })
 
-    $effect(() => {
-        for (const key of header_keys) {
-            const elems = document.getElementsByClassName(`${key}-column`);
-            const header_title = document.getElementById(`header-${key}`);
-            const header_width = header_sizes[key];
-            if (elems.length > 0 && header_title !== null) {
-                const first = elems[0] as HTMLElement;
-                const value_width = first.clientWidth;
-                const header_width = header_title.clientWidth;
-                console.log(header_width);
-            }
-        }
-    });
-
 </script>
 
 <div class="content">
     <div class="table">
-        <div class="header">
-            {#each header_keys as key}
-                <div id={`header-${key}`} class="column-name">
+        {#each header_keys as key}
+            <div class="column">
+                <div class="column-header">
                     {key_label_map[key]}
                 </div>
-            {/each}
-        </div>
-        <div class="body">
-            {#each data_map as row}
-                <div class="row">
-                    {#each header_keys as key}
-                        <div class={`column-value ${typeof row.data[key]}-column ${key}-column`} style:min-width={`${header_sizes[key]}px`}>
+                <div class="column-values">
+                    {#each data_map as row}
+                        <div class="value">
                             {#if typeof row.data[key] === 'string'}
                             <input type="text" class="column-input input-text" bind:value={row.data[key]} />
                             {:else if typeof row.data[key] === 'number'}
@@ -70,8 +52,8 @@
                         </div>
                     {/each}
                 </div>
-            {/each}
-        </div>
+            </div>
+        {/each}
     </div>
     <!--
     <div class="btn-ctr">
@@ -101,70 +83,29 @@
 
     .table {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .header {
-        display: flex;
         flex-direction: row;
-        max-width: var(--table-width);
-        background-color: cyan;
-        width: 80%;
+        align-content: center;
+        justify-content: center;
     }
 
-    .column-name {
-        text-align: center;
-    }
-
-    .body {
-        max-width: var(--table-width);
-        width: 100%;
-    }
-
-    .row {
+    .value {
+        min-height: 25px;
         display: flex;
-        width: 100%;
     }
 
-    .column-value {
-        margin: auto;
+    .column {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        padding: 0 5px;
     }
 
     .column-input {
         margin: auto;
     }
-    .string-column {
-        flex-grow: 3;
-        display: flex;
-    }
-    .number-column {
-        flex-grow: 2;
-    }
-    .boolean-column {
-        flex-grow: 1;
-        margin: 0 5%;
-    }
-    .input-text {
-
-    }
     .input-number {
         width: 4em;
         text-align: center;
-    }
-    .input-boolean {
-
-    }
-
-
-    .btn-ctr {
-        margin: auto;
-        display: flex;
-        flex-grow: 1;
-    }
-
-    .btn-ctr * {
-        margin: auto;
     }
 
 </style>
