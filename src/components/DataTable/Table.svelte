@@ -91,13 +91,14 @@
     .value {
         min-height: 25px;
         display: flex;
+        padding: 3px 0.5em;
     }
 
     .column {
         display: flex;
         flex-direction: column;
         text-align: center;
-        padding: 0 5px;
+        margin: 0 3px;
     }
 
     .column-input {
