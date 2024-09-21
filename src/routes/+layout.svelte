@@ -67,4 +67,7 @@
     :global(.grayed-out)  {
         filter: contrast(0);
     }
+    :global(.display-none) {
+        display: none !important;
+    }
 </style>

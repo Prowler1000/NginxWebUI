@@ -1,37 +1,23 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import ServerItem from "../../components/ServerItem.svelte";
+	import type { ProxyServer, Server } from "@prisma/client";
+	import Table from "../../components/DataTable/Table.svelte";
+	import TableSelect from "../../components/DataTable/TableSelect.svelte";
+	import { CreateProxyServer, CreateServer, DeleteProxyServer, DeleteServer, UpdateProxyServer, UpdateServer } from "$lib/api";
 
     enum Scheme {
         HTTP = "HTTP",
         HTTPS = "HTTPS",
     }
 
-    interface dataServerType {
-        id: number;
-        enable: boolean;
-        name: string;
-        hostname: string;
-        http_port: number;
-        ssl_port: number;
-        use_ssl: boolean;
-        forward_scheme: "HTTP" | "HTTPS";
-        forward_server: string;
-        forward_port: number;
-        serverId: number;
-    }
+    type ServerType = ProxyServer & Server
 
     const {
         data
     } = $props();
 
-    let servers = $state(data.servers);
-    
-    onMount(() => {
-        sortServers();
-    })
+    let table: Table<ServerType>;
 
-    const default_proxy = {
+    const default_proxy: ServerType = {
         id: 0,
         enable: true,
         name: "",
@@ -45,78 +31,187 @@
         serverId: 0,
         authId: null,
         sSLConfigId: null,
+        worker_access: false,
     }
 
     function add_server() {
-        if (servers.some(x => x.id === 0)) {
-            return; // Early return if we already have an unsaved server
-        }
-        servers.push(structuredClone({
+        table.add_value(structuredClone({
             ...default_proxy,
             forward_scheme: "HTTP" as Scheme
-        }));
+        }))
+    }
+    const key_labels: {[K in keyof Partial<ServerType>]: string} = {
+        ["id"]: "ID",
+        ["name"]: "Name",
+        ["enable"]: "Enable",
+        ["hostname"]: "Hostname",
+        ["http_port"]: "HTTP Port",
+        ["ssl_port"]: "SSL Port",
+        ["use_ssl"]: "Use SSL",
     }
 
-    function on_save() {
-        sortServers();
+    const header_keys: string[] = [
+        "enable",
+        "name",
+        "hostname",
+        "http_port",
+        "ssl_port",
+        "use_ssl",
+    ]
+
+    function extract_server_object(data: ServerType): Server {
+        const {
+            forward_scheme, 
+            forward_server, 
+            forward_port, 
+            serverId, 
+            ...server
+        } = data;
+        return {
+            ...server,
+            id: data.serverId,
+        }
     }
 
-    function on_delete(id: number) {
-        servers = servers.filter(x => x.id !== id);
+    function extract_proxy_object(data: ServerType): ProxyServer {
+        const {
+            id,
+            forward_scheme,
+            forward_server,
+            forward_port,
+            serverId,
+        } = data;
+        return {
+            id,
+            forward_scheme,
+            forward_server,
+            forward_port,
+            serverId,
+        }
     }
 
-    const sortId = (a: dataServerType, b: dataServerType) => {
-            return a.id - b.id;
+    function merge_server_objects(server: Server, proxy: ProxyServer): ServerType {
+        return {
+            ...server,
+            ...proxy,
+            id: proxy.id,
+            serverId: server.id
+        }
     }
-    const sortName = (a: dataServerType, b: dataServerType) => {
-        if (a.name < b.name) return -1;
-        else if (b.name > a.name) return 1;
-        else return 0;
+
+    async function save_callback(data: ServerType): Promise<ServerType | undefined> {
+        const server = extract_server_object(data);
+        let proxy = extract_proxy_object(data);
+        let new_server: Server | null;
+        let new_proxy: ProxyServer | null = null;
+        if (server.id === 0) {
+            new_server = await CreateServer(server)
+        }
+        else {
+            new_server = await UpdateServer(server);
+        }
+        if (new_server !== null) {
+            proxy = {...proxy, serverId: new_server.id};
+            if (proxy.id === 0) {
+                new_proxy = await CreateProxyServer(proxy);
+            }
+            else {
+                new_proxy = await UpdateProxyServer(proxy);
+            }
+        }
+        else {
+            return undefined
+        }
+        if (new_proxy === null && new_server !== null) {
+            await DeleteServer(new_server.id);
+            return undefined
+        }
+        return merge_server_objects(new_server, new_proxy!);
     }
-    function sortServers() {
-        servers.sort(sortName);
+
+    async function delete_callback(data: ServerType): Promise<boolean> {
+        const deleted_proxy = await DeleteProxyServer(data.id);
+        if (deleted_proxy) {
+            return await DeleteServer(data.serverId);
+        }
+        return false;
     }
+
 </script>
 
 <div class="server-ctr">
-    <div class="header">
-        <div>
-            Name
-        </div>
-        <div>
-            Hostname
-        </div>
-        <div style="width: 5%;">
-            HTTP Port
-        </div>
-        <div style="width: 5%; margin-right: 13%;">
-            SSL Port
-        </div>
-    </div>
-    {#each servers as server}
-        <ServerItem
-            bind:id={server.id}
-            bind:enabled={server.enable}
-            bind:name={server.name}
-            bind:hostname={server.hostname}
-            bind:http_port={server.http_port}
-            bind:ssl_port={server.ssl_port}
-            bind:use_ssl={server.use_ssl}
-            bind:scheme={server.forward_scheme}
-            bind:forward_server={server.forward_server}
-            bind:forward_port={server.forward_port}
-            bind:server_id={server.serverId}
-            bind:authId={server.authId}
-            bind:ssl_config_id={server.sSLConfigId}
-            bind:worker_access={server.worker_access}
-            auths={data.auths}
-            SSLConfigs={data.ssl_configs}
-
-            save_callback={on_save}
-            delete_callback={() => on_delete(server.id)}
-            default_show_details={server.id === 0}
-        />
-    {/each}
+    <Table bind:this={table}
+        data={data.servers}
+        key_label_map={key_labels}
+        display_value_keys={["id"]}
+        header_keys={header_keys}
+        save_callback={save_callback}
+        delete_callback={delete_callback}
+    >
+        {#snippet details(server, callback)}
+            <div class="general-settings-ctr">
+                <div class="auth-settings-ctr settings-ctr">
+                    <TableSelect
+                        title="Auth Settings:"
+                        options={data.auths}
+                        key_prop={"id"}
+                        name_prop={"name"}
+                        value={server.authId}
+                        nullable
+                        nullable_name="Disabled"
+                        onselectchange={(e) =>
+                            callback("authId", e.currentTarget.value === "" ? null : Number(e.currentTarget.value))
+                        }
+                    />
+                </div>
+                <div class="ssl-settings-ctr settings-ctr">
+                    <TableSelect
+                        title="SSL Settings:"
+                        options={data.ssl_configs}
+                        key_prop={"id"}
+                        name_prop={"name"}
+                        value={server.sSLConfigId}
+                        nullable
+                        onselectchange={(e) =>
+                            callback("sSLConfigId", e.currentTarget.value === "" ? null : Number(e.currentTarget.value))
+                        }
+                    />
+                </div>
+                <div class="worker-access-ctr settings-ctr">
+                    <div class="worker-access-title">
+                        Web Workers:
+                    </div>
+                    <div class="worker-access-setting">
+                        <input type="checkbox" checked={server.worker_access} onchange={(e) =>
+                            callback("worker_access", e.currentTarget.checked)
+                        }/>
+                    </div>
+                </div>
+            </div>
+            <div class="proxy-settings-ctr">
+                <div class="proxy-settings-title">
+                    Proxy Settings:
+                </div>
+                <div class="proxy-settings-inputs">
+                    <div class="proxy-setting">
+                        <label for="scheme">Forward Scheme:</label>
+                        <select id="scheme" value={server.forward_scheme} onchange={(e) => callback("forward_scheme", e.currentTarget.value)}>
+                            <option value="HTTP">HTTP</option>
+                            <option value="HTTPS">HTTPS</option>
+                        </select>
+                    </div>
+                    <div class="proxy-setting">
+                        <label for="fwd_server_input">Forward Server:</label>
+                        <div class="input-ctr"> <input id="fwd_server_input" type="text" value={server.forward_server} oninput={(e) => callback("forward_server", e.currentTarget.value)}/> </div>
+                    </div>
+                    <div class="proxy-setting">
+                        <label for="fwd_port_input">Forward Port:</label>
+                        <div class="input-ctr"> <input id="fwd_port_input" type="number" value={server.forward_port} oninput={(e) => callback("forward_port", Number(e.currentTarget.value))}/> </div>
+                    </div>
+                </div>
+            </div>
+        {/snippet}
+    </Table>
     <div class="btn-ctr">        
         <button onclick={add_server}>Add Server</button>
     </div>
@@ -127,15 +222,49 @@
         display: flex;
         flex-direction: column;
     }
-    .header {
+    .general-settings-ctr {
         display: flex;
-        width: calc(100%, -10px);
-        margin: 10px;
         justify-content: center;
     }
-    .header * {
-        width: 10%;
-        text-align: center;
+    .settings-ctr {
+        margin: 0 10px 10px 10px;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    .settings-ctr * {
+        margin: auto;
+    }
+
+    .auth-settings-ctr {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .auth-settings-ctr *{
+        margin: auto;
+    }
+
+    .proxy-settings-ctr {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .proxy-settings-title {
+        margin: auto;
+    }
+    .proxy-settings-inputs {
+        margin: auto;
+        width: 100%;
+    }
+    .proxy-setting {
+        display: flex;
+        margin: 5px;
+    }
+    .proxy-setting label {
+        width: 50%;
+        text-align: right;
     }
     .btn-ctr {
         display: flex;

@@ -29,8 +29,30 @@
 </script>
 
 <div class="content">
-    <Table data={data.servers} key_label_map={key_labels} header_keys={header_keys}>
-        
+    <Table 
+        data={data.servers} 
+        key_label_map={key_labels} 
+        header_keys={header_keys}
+        save_callback={(data) => {return data}}
+        delete_callback={(data) => {return true}}
+        >
+        {#snippet details(server: Server, callback)}
+            <div class="auth-settings-ctr settings-ctr">
+                <div class="auth-settings-title">
+                    Auth Settings:
+                </div>
+                <div class="auth-settings-select">
+                    <select onchange={(e) => {
+                        callback("authId", e.currentTarget.value === "" ? null : Number(e.currentTarget.value))
+                    }} value={server.authId}>
+                        <option value={null} selected={server.authId === null}>Disabled</option>
+                        {#each [{id: 1, name: "Authentik"}] as auth}
+                            <option value={auth.id} selected={server.authId === auth.id}>{auth.name}</option>
+                        {/each}
+                    </select>
+                </div>
+            </div>
+        {/snippet}
     </Table>
 </div>
 
