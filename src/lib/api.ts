@@ -261,7 +261,7 @@ export async function UpdateStream(stream: Stream, fetchFunc = fetch): Promise<S
     return null;
 }
 
-export async function DeleteStream(id: number, fetchFunc = fetch) {
+export async function DeleteStream(id: number, fetchFunc = fetch): Promise<boolean> {
     const res = await fetchFunc('/api/v1/stream', {
         method: 'DELETE',
         body: JSON.stringify({id: id}),
@@ -272,4 +272,5 @@ export async function DeleteStream(id: number, fetchFunc = fetch) {
     if (!res.ok) {
         console.error(await res.text());
     }
+    return res.status === 200;
 }

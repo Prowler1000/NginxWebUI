@@ -2,14 +2,30 @@
 	import InteractableDiv from '$lib/accessibility/InteractableDiv.svelte';
 import { CreateStream, DeleteStream, UpdateStream } from '$lib/api';
 	import type { Stream } from '@prisma/client';
+	import Table from '../../components/DataTable/Table.svelte';
 
     const {
         data
     } = $props();
 
-    let streams = $state(data.streams.map(x => x));
-    let saved_streams = $state(data.streams.map(x => x));
-    let can_save = $state(data.streams.map(x => false));
+    const label_map: {[K in keyof Stream]: string} = {
+        'id': 'ID',
+        'name': "Name",
+        'incomming_port': "Incomming Port",
+        'upstream_host': "Upstream Host",
+        'upstream_port': "Upstream Port",
+    }
+
+    const display_keys: (keyof Stream)[] = [
+        'id',
+    ]
+
+    const editable_keys: (keyof Stream)[] = [
+        'name',
+        'incomming_port',
+        'upstream_host',
+        'upstream_port',
+    ]
 
     const default_stream: Stream = {
         id: 0,
@@ -20,96 +36,47 @@ import { CreateStream, DeleteStream, UpdateStream } from '$lib/api';
     };
 
     function new_stream() {
-        if (!streams.some(x => x.id === 0)) {
-            streams.push(structuredClone(default_stream));
-            can_save.push(true);
-        }
     }
 
-    function set_can_save() {
-        streams.forEach((stream, i) => {
-            const saved = saved_streams.find(x => x.id === stream.id);
-            can_save[i] = saved === undefined || !Object.keys(saved).every(key => 
-                saved[key as keyof Stream] === stream[key as keyof Stream]
-            );
-        })
-    }
-
-    let timeout: NodeJS.Timeout;
-    function check_can_save() {
-        clearTimeout(timeout);
-        setTimeout(() => {
-            set_can_save();
-        }, 500);
-    }
-
-    async function save(index: number) {
-        if (streams[index].id === 0) {
-            const res = await CreateStream(streams[index]);
+    async function save(data: Stream): Promise<Stream> {
+        if (data.id === 0) {
+            const res = await CreateStream(data);
             if (res !== null) {
-                streams[index] = structuredClone(res);
-                saved_streams.push(structuredClone(res));
+                return res;
             }
             else {
                 console.error("An error occured while saving.");
+                return data;
             }
         }
         else {
-            const res = await UpdateStream(streams[index]);
+            const res = await UpdateStream(data);
             if (res !== null) {
-                streams[index] = structuredClone(res);
-                saved_streams[index] = structuredClone(res);
+                return res;
             }
             else {
                 console.error("An error occured while saving.");
+                return data;
             }
         }
-        set_can_save();
     }
 
-    async function del(id: number) {
-        if (id === 0) {
-            streams = streams.filter(x => x.id !== 0);
-        }
-        else {
-            await DeleteStream(id);
-            streams = streams.filter(x => x.id !== id);
-            saved_streams = saved_streams.filter(x => x.id !== id);
-        }
+    async function del(data: Stream): Promise<boolean> {
+        return await DeleteStream(data.id);
+        
     }
 
 </script>
 
 <div class="page-ctr">
-    {#each streams as stream, index}
-        <div class="stream-ctr">
-            <div class="id-ctr input-ctr">
-                ID: {stream.id}
-            </div>
-            <div class="name-ctr input-ctr">
-                <label for="name-input">Name:</label>
-                <input type="text" id="name-input" bind:value={stream.name} oninput={check_can_save}/>
-            </div>
-            <div class="in-port-ctr input-ctr">
-                <label for="in-port-input">Incomming Port:</label>
-                <input type="number" id="in-port-input" bind:value={stream.incomming_port} oninput={check_can_save}/>
-            </div>
-            <div class="upstream-host-ctr input-ctr">
-                <label for="upstream-host-input">Upstream Host:</label>
-                <input type="text" id="upstream-host-input" bind:value={stream.upstream_host} oninput={check_can_save}/>
-            </div>
-            <div class="upstream-port-ctr input-ctr">
-                <label for="upstream-port-input">Upstream Port:</label>
-                <input type="number" id="upstream-port-input" bind:value={stream.upstream_port} oninput={check_can_save}/>
-            </div>
-            <InteractableDiv oninteract={() => save(index)} class={can_save[index] ? '' : 'grayed-out'}>
-                <span class="material-icons">save</span>
-            </InteractableDiv>
-            <InteractableDiv oninteract={() => del(stream.id)}>
-                <span class="material-icons">delete</span>
-            </InteractableDiv>
-        </div>
-    {/each}
+    <Table
+        data={data.streams}
+        key_label_map={label_map}
+        display_value_keys={display_keys}
+        header_keys={editable_keys}
+        save_callback={save}
+        delete_callback={del}
+    />
     <div class="btn-ctr">
         <button class="new-stream-btn" onclick={new_stream}>New Stream</button>
     </div>
