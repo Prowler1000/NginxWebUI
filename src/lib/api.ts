@@ -204,8 +204,8 @@ export async function UpdateSSLConfig(config: SSLConfig, fetchFunc = fetch): Pro
     }
 }
 
-export async function DeleteSSLConfig(id: number, fetchFunc = fetch) {
-    await fetchFunc("/api/v1/ssl/Delete", {
+export async function DeleteSSLConfig(id: number, fetchFunc = fetch): Promise<boolean> {
+    const res = await fetchFunc("/api/v1/ssl/Delete", {
         method: 'DELETE',
         body: JSON.stringify({
             id: id,
@@ -214,6 +214,7 @@ export async function DeleteSSLConfig(id: number, fetchFunc = fetch) {
             'Content-Type': 'application/json',
         }
     });
+    return res.status === 200;
 }
 
 export async function GetAllStreams(fetchFunc = fetch): Promise<Stream[]> {
