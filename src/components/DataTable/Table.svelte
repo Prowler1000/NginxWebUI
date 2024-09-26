@@ -115,6 +115,7 @@
     }
 
     function toggle_sort(key: keyof typeof sort_status) {
+        let default_sort: keyof typeof sort_status | undefined = undefined;
         for (const loop_key in sort_status) {
             if (loop_key === key) {
                 switch (sort_status[key]) {
@@ -126,13 +127,16 @@
                         break;
                     case -1:
                         sort_status[key] = 0;
-                        sort_status[header_keys[0]] = 1;
+                        default_sort = display_value_keys[0] ?? header_keys[0];
                         break;
                 }
             }
             else {
                 sort_status[loop_key] = 0;
             }
+        }
+        if (default_sort !== undefined) {
+            sort_status[default_sort] = 1;
         }
         sort();
     }
@@ -248,7 +252,6 @@
     .details {
         display: flex;
         flex-direction: column;
-        background-color: aliceblue;
         justify-content: center;
         align-content: center;
         justify-items: center;
