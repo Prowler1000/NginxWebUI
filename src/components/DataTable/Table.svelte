@@ -27,7 +27,7 @@
         show_details: boolean,
     }
 
-    let combined_keys = [...header_keys, ...display_value_keys]
+    let combined_keys = [...display_value_keys, ...header_keys]
 
     let data_map = $state([] as Row[]);
     let can_save = $derived(data_map.map(x => check_can_save(x)))
@@ -57,6 +57,7 @@
                 show_details: false
             }
         });
+        //data_map = [];
         combined_keys.forEach(key => {
             const title = document.getElementById(`header-${key}`);
             if (title != null) {
