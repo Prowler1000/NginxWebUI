@@ -1,5 +1,6 @@
-ARG NODE_VERSION=22.0.0
-ARG NGINX_VERSION=1.27.1
+ARG ALPINE_VERSION=3.20.3
+ARG NODE_VERSION=23.5.0
+ARG NGINX_VERSION=1.27.3
 ARG PCRE_VERSION=10.42
 ARG ZLIB_VERSION=1.3.1
 ARG LIBRESSL_VERSION=3.9.1
@@ -12,7 +13,7 @@ ARG WEBUI_DIR=/webui
 
 FROM node:${NODE_VERSION}-alpine AS node
 
-FROM alpine:latest AS build
+FROM alpine:${ALPINE_VERSION} AS build
 RUN \
     echo "Update and install dependencies" && \
     apk update && \
@@ -87,7 +88,7 @@ RUN make install
 
 # Download and extract s6-overlay
 
-FROM alpine:latest AS build-webui
+FROM alpine:${ALPINE_VERSION} AS build-webui
 
 COPY --from=node /usr/lib /usr/lib
 COPY --from=node /usr/local/lib /usr/local/lib
@@ -107,11 +108,9 @@ RUN pnpm i
 RUN pnpm prisma:generate
 RUN pnpm build
 RUN pnpm i -P
-#ENTRYPOINT [ "tail", "-f", "/dev/null" ]
 
-FROM alpine:latest AS s6-base
+FROM alpine:${ALPINE_VERSION} AS s6-base
 ARG S6_OVERLAY_VERSION
-
 
 ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
 ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz /tmp
@@ -121,8 +120,6 @@ RUN apk add \
     openssl \
     nodejs \
     npm
-
-# Start the final image
 
 FROM s6-base AS nginx
 
@@ -137,7 +134,6 @@ RUN \
     find /etc/s6-overlay/s6-rc.d/ -name "up" -exec chmod +x {} \;
 
 ENTRYPOINT [ "/init" ]
-#ENTRYPOINT [ "tail", "-f", "/dev/null" ]
 
 # UDP is required for http3/QUIC.
 EXPOSE 80/tcp 443/tcp 80/udp 443/udp
