@@ -1,6 +1,9 @@
 <script lang="ts" generics="T extends {[key: string]: any}">
 	import InteractableDiv from '$lib/accessibility/InteractableDiv.svelte';
-	import {  onMount, type Snippet } from 'svelte';
+	import { addDebugVerticalLine } from '$lib/debug';
+	import { onMount, untrack, type Snippet } from 'svelte';
+    import type { Attachment } from 'svelte/attachment';
+	import { derived } from 'svelte/store';
 
     type Props = {
         data: T[],
@@ -25,19 +28,63 @@
         data: T, 
         saved_data: T | undefined, 
         show_details: boolean,
+        htmlElement: HTMLElement | undefined,
     }
 
     let combined_keys = [...display_value_keys, ...header_keys]
 
     let data_map = $state([] as Row[]);
-    let can_save = $derived(data_map.map(x => check_can_save(x)))
-    let header_sizes = $state({} as {[key: string]: number});
-    let rows_mounted = $state(0);
+    let can_save = $derived(data_map.map(x => check_can_save(x)));
     let sort_status = $state(Object.fromEntries(combined_keys.map((v, i) => {
         return [v, 0]
     })));
 
-    let loaded = $state(false);
+    let mounted = $state(false);
+
+    let tableBody: HTMLDivElement | undefined = $state();
+    let columnHeaders: {[key: string]: HTMLDivElement} = $state({});
+
+    function getElementWidth(element: Element): number {
+        const style = window.getComputedStyle(element);
+        const paddingLeft = parseFloat(style.paddingLeft);
+        const paddingRight = parseFloat(style.paddingRight);
+        return element.clientWidth - paddingLeft - paddingRight;
+    }
+
+    let headerWidths: {[key: string]: number} = $state({})
+
+    let column_lefts: {[key: string]: number} = $state(Object.fromEntries(combined_keys.map(key => [key, 0])));
+    // $inspect(column_lefts).with(console.debug);
+    $effect(() => {
+        for (const key of combined_keys) {
+            if (!mounted) break;
+            const header = columnHeaders[key];
+            const rows = data_map.map(x => x.htmlElement).filter(x => x !== undefined);
+            let header_width = headerWidths[key]; // Have the effect react to header width changes and reposition.
+            if (rows.length > 0 && header !== undefined) {
+                const first = rows[0];
+                const value = first.getElementsByClassName(`${key}-value`)[0];
+                const value_coords = value.getBoundingClientRect();
+                const value_width = value_coords.width / 2; // We want to include padding
+                const mid_point = value_coords.left + value_width;
+                const header_coords = header.getBoundingClientRect();
+                const sort_arrow = header.getElementsByClassName("sort-arrow");
+                header_width = header_coords.width;
+                if (sort_arrow.length > 0) {
+                    header_width -= sort_arrow[0].getBoundingClientRect().width;
+                }
+                let header_mid = header_coords.left + header_width / 2;
+                const shift = mid_point - header_mid;
+
+                if (Math.abs(shift) > 0.1) {
+                    untrack(() => {
+                        
+                        column_lefts[key] += shift
+                    });
+                }
+            }
+        }
+    })
 
     export function add_value(data: T) {
         if (data_map.some(x => x.saved_data !== undefined)) {
@@ -45,6 +92,7 @@
                 data: data,
                 saved_data: undefined,
                 show_details: true,
+                htmlElement: undefined,
             });
         }
 
@@ -54,44 +102,14 @@
         data_map = data.map(x => {
             return {
                 data: x, saved_data: structuredClone(x), 
-                show_details: false
+                show_details: false,
+                htmlElement: undefined,
             }
         });
-        //data_map = [];
-        combined_keys.forEach(key => {
-            const title = document.getElementById(`header-${key}`);
-            if (title != null) {
-                const size = title.getBoundingClientRect().width;
-                header_sizes[key] = size;
-            }
-        });
-    });
-
-    function post_load() {
+        mounted = true;
         sort_status[display_value_keys[0] ?? header_keys[0]] = 1;
         sort();
-        combined_keys.forEach(key => {
-            const header = document.getElementById(`header-${key}`);
-            const rows = document.getElementsByClassName('row');
-            if (rows.length > 0 && header !== null) {
-                const first = rows[0];
-                const value = first.getElementsByClassName(`${key}-value`)[0];
-                const value_coords = value.getBoundingClientRect();
-                const mid_point = value_coords.left + value_coords.width / 2;
-
-                const header_coords = header.getBoundingClientRect();
-                let header_width = header_coords.width;
-                const sort_arrow = header.getElementsByClassName("sort-arrow");
-                if (sort_arrow.length > 0) {
-                    header_width -= sort_arrow[0].getBoundingClientRect().width;
-                }
-                let header_mid = header_coords.left + header_width / 2;
-                header.style.left = `${mid_point - header_mid}px`;
-            }
-        });
-
-        loaded = true;
-    }
+    });
 
     function sort_data(orderKey: keyof T, order = 1) {
         data_map.sort((a, b) => {
@@ -142,13 +160,6 @@
         sort();
     }
 
-    function onLoad(el: HTMLDivElement) {
-        rows_mounted++;
-        if (!loaded) {
-            post_load();
-        }
-    }
-
     function check_can_save(row: Row) {
         return Object.keys(row.data).some(key => 
             row.data[key] !== row.saved_data?.[key]
@@ -180,9 +191,12 @@
 <div class="content">
     <div class="table">
         <div class="header">
-            {#each combined_keys as key}
-                <InteractableDiv oninteract={() => toggle_sort(key)}>
-                    <div id={`header-${key}`} class="column-header">
+            {#each combined_keys as key, index}
+                <InteractableDiv id={`header-${key}`} oninteract={() => toggle_sort(key) } 
+                    style={`left: ${column_lefts[key]}px; position: relative;`}
+                    bind:element={columnHeaders[key]}
+                >
+                    <div class="column-header" bind:clientWidth={headerWidths[key]}>
                         {key_label_map[key]}
                         <span class="material-icons sort-arrow" style:opacity={sort_status[key] === 0 ? "0" : "1"}>
                             {#if sort_status[key] === 1}
@@ -195,18 +209,18 @@
                 </InteractableDiv>
             {/each}
         </div>
-        <div id="body" class="body">
+        <div id="body" class="body" bind:this={tableBody}>
             {#each data_map as row, index} 
-                <div class="row" use:onLoad>
+                <div class="row" bind:this={row.htmlElement}>
                     <div class="values">            
                         {#each display_value_keys as key}
                             <div class={`value ${key}-value display-value`} 
-                                style:min-width={key in header_sizes ? `${header_sizes[key] + 10}px` : 'auto'}>
+                                style:min-width={`${headerWidths[key] ? `${headerWidths[key]}px` : 'auto'}`}>
                                 {row.data[key]}
                             </div>
                         {/each}
                         {#each header_keys as key}
-                            <div class={`value ${key}-value`} style:min-width={key in header_sizes ? `${header_sizes[key] + 10}px` : 'auto'}>
+                            <div class={`value ${key}-value`} style:min-width={`${headerWidths[key] ? `${headerWidths[key]}px` : 'auto'}`}>
                                 {#if typeof row.data[key] === 'string'}
                                     <input type="text" class="column-input input-text" bind:value={row.data[key]}/>
                                 {:else if typeof row.data[key] === 'number'}
@@ -262,7 +276,6 @@
     .content {
         display: flex;
         flex-direction: column;
-        width: 100%;
         padding: 0 15px;
 
         --table-width: 60%;
@@ -277,7 +290,7 @@
 
     .header {
         display: flex;
-        align-content: center;
+        /* align-content: center; */
         justify-content: center;
     }
 
